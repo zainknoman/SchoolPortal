@@ -28,6 +28,20 @@ describe('Timetable + Attendance (e2e)', () => {
     prisma = moduleFixture.get(PrismaService);
     await app.init();
 
+    // Self-healing: if a prior run's afterAll didn't complete (crash, forced-quit), don't fail on
+    // stale fixtures — clear them before creating fresh ones.
+    await prisma.user
+      .deleteMany({ where: { identifier: { startsWith: 'tta-' } } })
+      .catch(() => undefined);
+    const stale = await prisma.school.findMany({
+      where: { name: 'TTA E2E School' },
+    });
+    for (const s of stale) {
+      await prisma.school
+        .delete({ where: { id: s.id } })
+        .catch(() => undefined);
+    }
+
     const school = await prisma.school.create({
       data: { name: 'TTA E2E School' },
     });
@@ -130,7 +144,11 @@ describe('Timetable + Attendance (e2e)', () => {
       },
     });
 
-    Object.assign(ids, { childA: childA.id, childB: childB.id });
+    Object.assign(ids, {
+      childA: childA.id,
+      childB: childB.id,
+      section: section.id,
+    });
   });
 
   afterAll(async () => {
@@ -201,6 +219,44 @@ describe('Timetable + Attendance (e2e)', () => {
       expect.arrayContaining([{ date: today, status: 'PRESENT' }]),
     );
     expect(res.body.summary.present).toBeGreaterThanOrEqual(1);
+  });
+
+  it('staff can list every section (to pick which one to manage)', async () => {
+    const teacherToken = await loginAs('tta-teacher@seeds.edu.pk');
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/sections')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(200);
+
+    expect(res.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: ids.section, name: 'TTA-A' }),
+      ]),
+    );
+  });
+
+  it('staff can list the students in a section (to pick who to mark attendance for)', async () => {
+    const teacherToken = await loginAs('tta-teacher@seeds.edu.pk');
+
+    const students = await request(app.getHttpServer())
+      .get(`/api/v1/sections/${ids.section}/students`)
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .expect(200);
+
+    expect(students.body.map((s: { name: string }) => s.name).sort()).toEqual([
+      'TTA Child A',
+      'TTA Child B',
+    ]);
+  });
+
+  it('a PARENT cannot list section students — this is a staff-only tool', async () => {
+    const parentToken = await loginAs('tta-parent-a@seeds.edu.pk');
+
+    await request(app.getHttpServer())
+      .get('/api/v1/sections')
+      .set('Authorization', `Bearer ${parentToken}`)
+      .expect(403);
   });
 
   it('a PARENT cannot mark attendance — attendance is immutable from the parent side', async () => {

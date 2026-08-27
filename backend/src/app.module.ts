@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { MeModule } from './me/me.module';
 import { TimetableModule } from './timetable/timetable.module';
 import { AttendanceModule } from './attendance/attendance.module';
+import { SectionsModule } from './sections/sections.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { AttendanceModule } from './attendance/attendance.module';
     MeModule,
     TimetableModule,
     AttendanceModule,
+    SectionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
