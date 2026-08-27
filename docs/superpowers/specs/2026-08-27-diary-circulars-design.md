@@ -109,10 +109,13 @@ Every write (`diary.create`, `circular.publish`, `circular.read`, `file.upload`)
   already has placeholder "Timetable"/"Circulars" entries from the Sprint 3-4 shell.
 
 **Parent app (Flutter):**
-- `diary_tab.dart` and `circulars_tab.dart`, replacing two of the bottom-nav placeholder slots,
-  following `calendar_tab.dart`'s existing fetch-and-list-per-child pattern and `api_client.dart`
-  conventions. Circulars tab shows unread count as a badge; opening an entry fires
-  `POST /circulars/:id/read`.
+- Diary fills in the existing 3rd sub-tab of `calendar_tab.dart`'s `CalendarTab` (already
+  scaffolded as `Tab(text: 'Diary')` with a "lands in the next sprint" placeholder) — a
+  `_DiaryTab` following the same `_TimetableTab`/`_AttendanceTab` fetch-and-list pattern.
+- Circulars fills in the `HomeShell` bottom nav's "Notifications" tab (index 2, currently a
+  placeholder) — FEAT-011's future FCM push wiring (Sprint 7-8) can later deep-link into this
+  same list rather than needing a separate screen. Shows unread count as a nav badge; opening an
+  entry fires `POST /circulars/:id/read`.
 
 ## Urdu RTL + font handling
 
