@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../api/api_client.dart';
 import '../api/models.dart';
 import '../auth/auth_state.dart';
+import 'calendar_tab.dart';
 
 /// Authenticated shell: multi-child switcher up top, bottom nav below (Home / Calendar /
 /// Notifications / Messages / Fees / More — per the MVP plan). Every tab is a placeholder;
@@ -114,16 +115,32 @@ class _HomeShellState extends State<HomeShell> {
       return const Center(child: Text('No children are linked to this account yet.'));
     }
 
-    final labels = ['Home', 'Calendar', 'Notifications', 'Messages', 'Fees', 'More'];
     final child = _activeChild;
+    if (child == null) {
+      return const Center(child: Text('No children are linked to this account yet.'));
+    }
+
+    if (_tabIndex == 1) {
+      final auth = context.read<AuthState>();
+      final api = context.read<ApiClient>();
+      return CalendarTab(
+        // Keyed on the child id so switching the active child recreates this tab and its two
+        // sub-tabs, instead of silently keeping the previous child's timetable/attendance on screen.
+        key: ValueKey(child.id),
+        studentId: child.id,
+        accessToken: auth.accessToken!,
+        api: api,
+      );
+    }
+
+    final labels = ['Home', 'Calendar', 'Notifications', 'Messages', 'Fees', 'More'];
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Text(
-          '${labels[_tabIndex]} for ${child?.name ?? ''}\n\n'
-          'Timetable/attendance/diary/circulars/messages/fees land here in the next sprint '
-          '(FEAT-006 onward) — this screen confirms login, multi-child switching, and '
-          'role-gated routing are wired end to end.',
+          '${labels[_tabIndex]} for ${child.name}\n\n'
+          'Diary/circulars/messages/fees land here in the next sprint — this screen confirms '
+          'login, multi-child switching, and role-gated routing are wired end to end.',
           textAlign: TextAlign.center,
         ),
       ),
