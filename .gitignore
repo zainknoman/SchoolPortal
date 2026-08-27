@@ -1,0 +1,16 @@
+# --- agentic-suite (auto-managed) — keep plan/docs, ignore run machinery ---
+plan/*
+!plan/docs/
+.agentic-builder/
+
+# --- monorepo build output / deps / local env ---
+**/node_modules/
+**/dist/
+**/coverage/
+**/.env
+!**/.env.example
+backend/dev.db
+backend/*.db-journal
+backend/prisma/dev.db
+backend/prisma/*.db-journal
+**/*.log

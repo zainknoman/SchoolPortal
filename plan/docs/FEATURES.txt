@@ -1,0 +1,156 @@
+### FEAT-001 — Data model + migration plan
+Domain:       infra
+Complexity:   L
+Dependencies: none
+Description:  PostgreSQL schema (Prisma) covering users, roles, schools, campuses, academic_sessions,
+              classes, sections, subjects, teachers, students, parent_profiles, student_parents,
+              timetables, attendance, diary_entries(+attachments), circulars(+attachments),
+              messages(+recipients+attachments), notifications, fee_structures, fee_vouchers,
+              fee_items, fee_payments, receipts, files, audit_logs, device_tokens. UUID PKs,
+              created_at/updated_at, FKs + indexes. Campus is a first-class column from day one
+              (Seeds already runs two campuses).
+User stories:
+  - As a backend engineer, I want a normalized schema with migrations, so every later feature has a
+    stable data layer to build against.
+Acceptance criteria:
+  - `prisma migrate dev` runs clean against a local Postgres instance.
+  - Every entity from CURRENT-SYSTEM-ANALYSIS.md's "retain" list has a corresponding table.
+  - A seed script creates one school, two campuses, one class/section, one teacher, one student with
+    two linked parent accounts (for local dev + tests).
+Edge cases:
+  - A student with two parents; a parent with two children in different campuses.
+Must NOT:
+  - Hardcode school/campus names as enum values — campuses are data rows, not code constants.
+
+### FEAT-002 — Auth + RBAC
+Domain:       auth
+Complexity:   M
+Dependencies: FEAT-001
+Description:  Login (email or GR-number + password), JWT access + refresh tokens with rotation,
+              rate limiting/lockout, logout, forgot-password stub (OTP hook, no SMS provider wired yet).
+              Roles: SUPER_ADMIN, SCHOOL_ADMIN, TEACHER, ACCOUNTS, PARENT. Server-enforced guards —
+              never rely on the frontend hiding a button.
+User stories:
+  - As a parent, I want to log in with my email/GR-number and password, so I can see my children's info.
+  - As a teacher, I want a role-scoped session, so I only see actions my role is allowed to perform.
+Acceptance criteria:
+  - POST /api/v1/auth/login returns access+refresh tokens on valid credentials; generic error on invalid
+    (never reveal whether the email or the password was wrong).
+  - 5 failed attempts within 10 minutes locks the account for 15 minutes.
+  - A PARENT-role token calling an ADMIN-only endpoint gets 403, not a silently-hidden UI element.
+  - Passwords hashed with Argon2 or bcrypt; refresh tokens rotate on use.
+Edge cases:
+  - Expired refresh token; concurrent login from two devices; role changed mid-session.
+Must NOT:
+  - Log passwords or full tokens anywhere, including audit_logs.
+
+### FEAT-003 — Multi-campus + multi-child data model
+Domain:       data
+Complexity:   S
+Dependencies: FEAT-001
+Description:  student_parents join table supports one parent linked to N students across campuses;
+              GET /api/v1/me/children returns only the authenticated parent's authorized children with
+              campus/class/section per child.
+User stories:
+  - As a parent with two children, I want a single login that lists both, so I don't need two accounts.
+Acceptance criteria:
+  - A parent with children on both campuses gets both back from /me/children with correct campus tags.
+  - A parent can never fetch a child they are not linked to (403/404, not just a filtered empty list from
+    a query they could otherwise widen).
+Edge cases:
+  - A child transferred between campuses mid-year (historical attendance/timetable stays attributed to
+    the campus active at the time).
+Must NOT:
+  - Require separate parent accounts per child.
+
+### FEAT-004 — Staff console shell
+Domain:       ui
+Complexity:   M
+Dependencies: FEAT-002
+Description:  Vue 3 + TS + Vite + Pinia app skeleton. Login screen, authenticated shell with role-gated
+              nav (Teacher sees Attendance/Diary/Timetable/Messages; Admin/Accounts sees Students/
+              Parents/Teachers/Classes/Timetable/Circulars/Fees), logout. No feature screens yet beyond
+              login + empty role-gated placeholders — those land with FEAT-006+.
+User stories:
+  - As a teacher, I want to log in and see only the nav items relevant to my role.
+Acceptance criteria:
+  - Login screen posts to /api/v1/auth/login, stores tokens, redirects to role-appropriate landing.
+  - A TEACHER-role user does not see Admin-only nav items in the DOM at all (not just CSS-hidden).
+  - Logout clears tokens and returns to login.
+Edge cases:
+  - Refresh-token expiry while the app is open (silent re-auth or clean redirect to login, not a broken
+    blank screen).
+Must NOT:
+  - Ship a separate deployable app for Teacher vs Admin — one app, role-gated.
+
+### FEAT-005 — Parent app shell
+Domain:       mobile
+Complexity:   M
+Dependencies: FEAT-002, FEAT-003
+Description:  Flutter app skeleton (Android first). Login screen (email/GR-number + password), secure
+              token storage, multi-child switcher `[ Child Name ▼ ]` at the top of the authenticated
+              shell, bottom nav (Home / Calendar / Notifications / Messages / Fees / More) as empty
+              placeholder screens — feature content lands with FEAT-006+.
+User stories:
+  - As a parent, I want to log in on my phone and switch between my children from one account.
+Acceptance criteria:
+  - Login screen authenticates against the same /api/v1/auth/login as the staff console.
+  - Tokens stored via secure platform storage (Keystore-backed on Android), not plain SharedPreferences.
+  - Switching the child selector updates a shared app-level "active child" state that later screens will
+    read (verified via a placeholder screen that displays the active child's name).
+  - Session persists across app restarts until the refresh token itself expires — no forced re-login on
+    every open.
+Edge cases:
+  - Parent with only one child (selector still present but shows no dropdown affordance, per the
+    Home-dashboard spec's "Quick Actions" pattern) — treat as zero-decision UI.
+Must NOT:
+  - Force a fresh login every time the app is opened.
+
+---
+The following features are recorded for planning completeness (full dependency graph) but are NOT
+dispatched in this run — see ARCHITECTURE.md §Run scoping. Kept intentionally brief; each gets full
+acceptance-criteria detail when its sprint starts.
+
+### FEAT-006 — Timetable
+Domain: data,ui,mobile  Complexity: M  Dependencies: FEAT-001,FEAT-004,FEAT-005
+Description: Period/time/subject/teacher(optional)/room(optional) per class/section/date; calendar tab
+in both staff console and parent app.
+
+### FEAT-007 — Attendance
+Domain: data,ui,mobile  Complexity: M  Dependencies: FEAT-001,FEAT-002,FEAT-004,FEAT-005
+Description: Teacher marks present/absent/late/leave/holiday; immutable from the parent app; every
+change audit-logged; parent sees today's status + monthly calendar + % summary.
+
+### FEAT-008 — Diary / homework
+Domain: data,ui,mobile  Complexity: M  Dependencies: FEAT-001,FEAT-004,FEAT-005
+Description: Per-subject entries with attachment/image/PDF/link, due date; correct Urdu RTL rendering,
+no auto-translation.
+
+### FEAT-009 — Circulars
+Domain: data,ui,mobile  Complexity: S  Dependencies: FEAT-001,FEAT-004,FEAT-005
+Description: School/section-scoped, attachments, read/unread tracking visible to admin as delivered/read
+counts.
+
+### FEAT-010 — Messages
+Domain: data,ui,mobile  Complexity: M  Dependencies: FEAT-002,FEAT-004,FEAT-005
+Description: Scoped inbox; parent may message only Class Teacher/Admin/Accounts/Principal, enforced
+server-side; search/filter/reply.
+
+### FEAT-011 — Notifications
+Domain: infra,mobile  Complexity: M  Dependencies: FEAT-007,FEAT-008,FEAT-009,FEAT-010
+Description: FCM push for attendance/diary/circular/message/fee events; deep-links to the right screen.
+
+### FEAT-012 — Fees
+Domain: data,ui,mobile,payments  Complexity: L  Dependencies: FEAT-001,FEAT-004,FEAT-005
+Description: Server-computed voucher, PDF generation, JazzCash/EasyPaisa in-app payment, payment
+history/receipts. Never trust client-computed totals.
+
+### FEAT-013 — Leave applications
+Domain: data,ui,mobile  Complexity: S  Dependencies: FEAT-007
+Description: Parent submits date-range + reason; admin approves/rejects; approved leave reflects on the
+attendance calendar.
+
+### FEAT-014 — Offline caching + hardening + pilot readiness
+Domain: mobile,infra  Complexity: M  Dependencies: FEAT-006,FEAT-007,FEAT-008,FEAT-009,FEAT-012
+Description: Cache last-loaded timetable/attendance/diary/circulars with "Last updated" timestamps;
+security review pass; Play Store submission.
