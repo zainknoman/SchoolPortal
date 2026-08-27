@@ -1,0 +1,120 @@
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { MarkAttendanceDto } from './dto/mark-attendance.dto';
+
+export interface AttendanceDay {
+  date: string;
+  status: string;
+}
+
+export interface AttendanceSummary {
+  present: number;
+  absent: number;
+  late: number;
+  holiday: number;
+  leave: number;
+  attendancePercentage: number;
+}
+
+@Injectable()
+export class AttendanceService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Attendance is immutable from the parent side by construction — this is the ONLY write path,
+   * and it lives behind the `@Roles('TEACHER','SCHOOL_ADMIN','SUPER_ADMIN')` guard on the
+   * controller, never exposed to PARENT. Every write is audit-logged (never skippable).
+   */
+  async markAttendance(dto: MarkAttendanceDto, markingUserId: string) {
+    const teacher = await this.prisma.teacher.findUnique({
+      where: { userId: markingUserId },
+    });
+    if (!teacher) {
+      throw new NotFoundException('Only a teacher account can mark attendance');
+    }
+
+    const date = new Date(dto.date);
+    const record = await this.prisma.attendance.upsert({
+      where: { studentId_date: { studentId: dto.studentId, date } },
+      create: {
+        studentId: dto.studentId,
+        date,
+        status: dto.status,
+        markedById: teacher.id,
+      },
+      update: { status: dto.status, markedById: teacher.id },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: markingUserId,
+        action: 'attendance.mark',
+        entity: 'Attendance',
+        entityId: record.id,
+        metadata: JSON.stringify({
+          studentId: dto.studentId,
+          date: dto.date,
+          status: dto.status,
+        }),
+      },
+    });
+
+    return record;
+  }
+
+  async getForStudent(
+    studentId: string,
+    month: string,
+  ): Promise<{ days: AttendanceDay[]; summary: AttendanceSummary }> {
+    const start = new Date(`${month}-01T00:00:00.000Z`);
+    const end = new Date(start);
+    end.setUTCMonth(end.getUTCMonth() + 1);
+
+    const records = await this.prisma.attendance.findMany({
+      where: { studentId, date: { gte: start, lt: end } },
+      orderBy: { date: 'asc' },
+    });
+
+    const summary: AttendanceSummary = {
+      present: 0,
+      absent: 0,
+      late: 0,
+      holiday: 0,
+      leave: 0,
+      attendancePercentage: 0,
+    };
+
+    for (const r of records) {
+      switch (r.status) {
+        case 'PRESENT':
+          summary.present++;
+          break;
+        case 'ABSENT':
+          summary.absent++;
+          break;
+        case 'LATE':
+          summary.late++;
+          break;
+        case 'HOLIDAY':
+          summary.holiday++;
+          break;
+        case 'LEAVE':
+          summary.leave++;
+          break;
+      }
+    }
+
+    const countable =
+      summary.present + summary.absent + summary.late + summary.leave;
+    summary.attendancePercentage =
+      countable === 0 ? 0 : Math.round((summary.present / countable) * 100);
+
+    return {
+      days: records.map((r) => ({
+        date: r.date.toISOString().slice(0, 10),
+        status: r.status,
+      })),
+      summary,
+    };
+  }
+}

@@ -1,0 +1,216 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import { App } from 'supertest/types';
+import * as argon2 from 'argon2';
+import { AppModule } from './../src/app.module';
+import { PrismaService } from '../src/prisma/prisma.service';
+
+describe('Timetable + Attendance (e2e)', () => {
+  let app: INestApplication<App>;
+  let prisma: PrismaService;
+  const password = 'CorrectHorseBattery9!';
+  const ids: Record<string, string> = {};
+
+  async function loginAs(identifier: string) {
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .send({ identifier, password })
+      .expect(201);
+    return res.body.accessToken as string;
+  }
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+    app = moduleFixture.createNestApplication();
+    prisma = moduleFixture.get(PrismaService);
+    await app.init();
+
+    const school = await prisma.school.create({
+      data: { name: 'TTA E2E School' },
+    });
+    const campus = await prisma.campus.create({
+      data: { schoolId: school.id, name: 'Main' },
+    });
+    const session = await prisma.academicSession.create({
+      data: {
+        label: 'TTA',
+        startDate: new Date(),
+        endDate: new Date(),
+        isActive: true,
+      },
+    });
+    const klass = await prisma.class.create({
+      data: {
+        campusId: campus.id,
+        academicSessionId: session.id,
+        name: 'TTA Grade',
+      },
+    });
+    const section = await prisma.section.create({
+      data: { classId: klass.id, name: 'TTA-A' },
+    });
+    // Subject.name is globally unique (not scoped per school) — upsert so reruns of this suite
+    // don't collide with a leftover row from a prior run.
+    const subject = await prisma.subject.upsert({
+      where: { name: 'TTA English' },
+      update: {},
+      create: { name: 'TTA English' },
+    });
+    ids.school = school.id;
+
+    const passwordHash = await argon2.hash(password);
+    const teacherUser = await prisma.user.create({
+      data: {
+        identifier: 'tta-teacher@seeds.edu.pk',
+        passwordHash,
+        role: 'TEACHER',
+      },
+    });
+    const teacher = await prisma.teacher.create({
+      data: { userId: teacherUser.id, name: 'TTA Teacher' },
+    });
+
+    const parentAUser = await prisma.user.create({
+      data: {
+        identifier: 'tta-parent-a@seeds.edu.pk',
+        passwordHash,
+        role: 'PARENT',
+      },
+    });
+    const parentBUser = await prisma.user.create({
+      data: {
+        identifier: 'tta-parent-b@seeds.edu.pk',
+        passwordHash,
+        role: 'PARENT',
+      },
+    });
+    const parentAProfile = await prisma.parentProfile.create({
+      data: { userId: parentAUser.id, name: 'TTA Parent A' },
+    });
+    const parentBProfile = await prisma.parentProfile.create({
+      data: { userId: parentBUser.id, name: 'TTA Parent B' },
+    });
+
+    const childA = await prisma.student.create({
+      data: {
+        campusId: campus.id,
+        sectionId: section.id,
+        grNumber: 'TTA-A1',
+        name: 'TTA Child A',
+      },
+    });
+    const childB = await prisma.student.create({
+      data: {
+        campusId: campus.id,
+        sectionId: section.id,
+        grNumber: 'TTA-B1',
+        name: 'TTA Child B',
+      },
+    });
+    await prisma.studentParent.create({
+      data: { studentId: childA.id, parentProfileId: parentAProfile.id },
+    });
+    await prisma.studentParent.create({
+      data: { studentId: childB.id, parentProfileId: parentBProfile.id },
+    });
+
+    await prisma.timetable.create({
+      data: {
+        sectionId: section.id,
+        subjectId: subject.id,
+        teacherId: teacher.id,
+        dayOfWeek: 1,
+        period: 1,
+        startTime: '08:00',
+        endTime: '08:40',
+        room: 'TTA-A',
+      },
+    });
+
+    Object.assign(ids, { childA: childA.id, childB: childB.id });
+  });
+
+  afterAll(async () => {
+    await prisma.school
+      .delete({ where: { id: ids.school } })
+      .catch(() => undefined);
+    await prisma.user
+      .deleteMany({
+        where: {
+          identifier: {
+            in: [
+              'tta-teacher@seeds.edu.pk',
+              'tta-parent-a@seeds.edu.pk',
+              'tta-parent-b@seeds.edu.pk',
+            ],
+          },
+        },
+      })
+      .catch(() => undefined);
+    await app.close();
+  });
+
+  it("a parent sees their own child's timetable", async () => {
+    const token = await loginAs('tta-parent-a@seeds.edu.pk');
+
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/students/${ids.childA}/timetable`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+
+    expect(res.body).toHaveLength(1);
+    expect(res.body[0]).toEqual(
+      expect.objectContaining({
+        subject: 'TTA English',
+        teacher: 'TTA Teacher',
+        room: 'TTA-A',
+      }),
+    );
+  });
+
+  it("a parent CANNOT see another parent's child's timetable", async () => {
+    const token = await loginAs('tta-parent-a@seeds.edu.pk');
+
+    await request(app.getHttpServer())
+      .get(`/api/v1/students/${ids.childB}/timetable`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(403);
+  });
+
+  it('a teacher can mark attendance, and it is then visible to the linked parent', async () => {
+    const teacherToken = await loginAs('tta-teacher@seeds.edu.pk');
+    const today = new Date().toISOString().slice(0, 10);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/attendance')
+      .set('Authorization', `Bearer ${teacherToken}`)
+      .send({ studentId: ids.childA, date: today, status: 'PRESENT' })
+      .expect(201);
+
+    const parentToken = await loginAs('tta-parent-a@seeds.edu.pk');
+    const month = today.slice(0, 7);
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/students/${ids.childA}/attendance?month=${month}`)
+      .set('Authorization', `Bearer ${parentToken}`)
+      .expect(200);
+
+    expect(res.body.days).toEqual(
+      expect.arrayContaining([{ date: today, status: 'PRESENT' }]),
+    );
+    expect(res.body.summary.present).toBeGreaterThanOrEqual(1);
+  });
+
+  it('a PARENT cannot mark attendance — attendance is immutable from the parent side', async () => {
+    const parentToken = await loginAs('tta-parent-a@seeds.edu.pk');
+    const today = new Date().toISOString().slice(0, 10);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/attendance')
+      .set('Authorization', `Bearer ${parentToken}`)
+      .send({ studentId: ids.childA, date: today, status: 'ABSENT' })
+      .expect(403);
+  });
+});
