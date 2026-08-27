@@ -73,50 +73,64 @@ async function onSubmit() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f6f1;
+  background: var(--color-background);
+  padding: var(--space-4);
 }
 .login-card {
-  width: min(360px, 90vw);
+  width: min(380px, 100%);
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
-  background: #ffffff;
-  border: 1px solid #dcdfd5;
-  border-radius: 10px;
-  padding: 2rem;
+  gap: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-5);
 }
 .brand {
-  font-size: 1.3rem;
+  font-size: var(--font-size-xl);
   margin: 0;
-  color: #1b2420;
 }
 .subtitle {
-  margin: 0 0 0.5rem;
-  color: #6e766c;
-  font-size: 0.9rem;
+  margin: 0 0 var(--space-1);
+  color: var(--color-muted);
+  font-size: var(--font-size-sm);
 }
 .field {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
-  font-size: 0.85rem;
-  color: #333b34;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
 }
 input {
-  padding: 0.55rem 0.7rem;
-  border: 1px solid #dcdfd5;
-  border-radius: 6px;
-  font-size: 0.95rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: var(--font-size-base);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+input:focus-visible {
+  outline: none;
+  border-color: var(--color-ring);
+  box-shadow: 0 0 0 3px rgb(3 105 161 / 0.15);
 }
 button {
-  margin-top: 0.4rem;
-  padding: 0.65rem;
+  margin-top: var(--space-1);
+  padding: 0.7rem;
   border: none;
-  border-radius: 6px;
-  background: #2e5c4c;
-  color: white;
-  font-weight: 600;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: var(--color-on-primary);
+  font: inherit;
+  font-weight: 700;
   cursor: pointer;
+  transition: background var(--transition-fast);
+}
+button:hover:not(:disabled) {
+  background: var(--color-accent-hover);
 }
 button:disabled {
   opacity: 0.6;
@@ -124,7 +138,7 @@ button:disabled {
 }
 .error {
   margin: 0;
-  color: #a6473a;
-  font-size: 0.85rem;
+  color: var(--color-destructive);
+  font-size: var(--font-size-sm);
 }
 </style>

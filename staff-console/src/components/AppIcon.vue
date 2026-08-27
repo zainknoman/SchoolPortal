@@ -1,0 +1,86 @@
+<script setup lang="ts">
+// Outline-style SVG icons (Phosphor "regular" visual language), 20px, currentColor stroke.
+// No emoji, no icon-library dependency — this project doesn't have one yet (MASTER.md).
+type IconName =
+  | 'home'
+  | 'calendar'
+  | 'notebook'
+  | 'clock'
+  | 'chat'
+  | 'users'
+  | 'user-circle'
+  | 'chalkboard'
+  | 'grid'
+  | 'megaphone'
+  | 'receipt'
+  | 'logout';
+
+defineProps<{ name: IconName; size?: number }>();
+</script>
+
+<template>
+  <svg
+    :width="size ?? 20"
+    :height="size ?? 20"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="1.8"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    <template v-if="name === 'home'">
+      <path d="M3 11.5 12 4l9 7.5" />
+      <path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" />
+    </template>
+    <template v-else-if="name === 'calendar'">
+      <rect x="3.5" y="5" width="17" height="16" rx="2" />
+      <path d="M8 3v4M16 3v4M3.5 10h17" />
+    </template>
+    <template v-else-if="name === 'notebook'">
+      <rect x="4.5" y="3" width="15" height="18" rx="2" />
+      <path d="M8 3v18M9 8h7M9 12h7M9 16h5" />
+    </template>
+    <template v-else-if="name === 'clock'">
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </template>
+    <template v-else-if="name === 'chat'">
+      <path d="M4 5h16v11H8l-4 4V5Z" />
+    </template>
+    <template v-else-if="name === 'users'">
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+      <circle cx="17" cy="8.5" r="2.3" />
+      <path d="M16 14.2c2.4.4 4 2.6 4 5.8" />
+    </template>
+    <template v-else-if="name === 'user-circle'">
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="10" r="2.5" />
+      <path d="M6.5 18.5c1-2.6 3-4 5.5-4s4.5 1.4 5.5 4" />
+    </template>
+    <template v-else-if="name === 'chalkboard'">
+      <rect x="3" y="4" width="18" height="12" rx="1.5" />
+      <path d="M9 20h6M12 16v4" />
+    </template>
+    <template v-else-if="name === 'grid'">
+      <rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1.2" />
+      <rect x="13" y="3.5" width="7.5" height="7.5" rx="1.2" />
+      <rect x="3.5" y="13" width="7.5" height="7.5" rx="1.2" />
+      <rect x="13" y="13" width="7.5" height="7.5" rx="1.2" />
+    </template>
+    <template v-else-if="name === 'megaphone'">
+      <path d="M3 10v4l4 1 8 4V5L7 9l-4 1Z" />
+      <path d="M17 9a3 3 0 0 1 0 6" />
+    </template>
+    <template v-else-if="name === 'receipt'">
+      <path d="M6 3h12v18l-2.5-1.5L13 21l-2.5-1.5L8 21l-2-1.5V3Z" />
+      <path d="M9 8h6M9 12h6" />
+    </template>
+    <template v-else-if="name === 'logout'">
+      <path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3" />
+      <path d="M15 16l4-4-4-4M8 12h11" />
+    </template>
+  </svg>
+</template>

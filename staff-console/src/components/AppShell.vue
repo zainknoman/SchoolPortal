@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import Icon from './AppIcon.vue';
 
 const auth = useAuthStore();
 const router = useRouter();
@@ -19,25 +20,28 @@ async function onLogout() {
   <div class="shell">
     <header class="topbar">
       <span class="brand">SEEDS Staff Console</span>
-      <button data-testid="logout" class="logout" @click="onLogout">Log out</button>
+      <button data-testid="logout" class="logout" @click="onLogout">
+        <Icon name="logout" :size="16" />
+        Log out
+      </button>
     </header>
 
     <div class="body">
-      <nav class="sidenav">
+      <nav class="sidenav" aria-label="Main">
         <template v-if="isTeacher">
-          <a data-testid="nav-attendance" href="#">Attendance</a>
-          <a data-testid="nav-diary" href="#">Diary</a>
-          <a data-testid="nav-timetable" href="#">Timetable</a>
-          <a data-testid="nav-messages" href="#">Messages</a>
+          <a data-testid="nav-attendance" href="#"><Icon name="calendar" />Attendance</a>
+          <a data-testid="nav-diary" href="#"><Icon name="notebook" />Diary</a>
+          <a data-testid="nav-timetable" href="#"><Icon name="clock" />Timetable</a>
+          <a data-testid="nav-messages" href="#"><Icon name="chat" />Messages</a>
         </template>
         <template v-else-if="isAdmin">
-          <a data-testid="nav-students" href="#">Students</a>
-          <a data-testid="nav-parents" href="#">Parents</a>
-          <a data-testid="nav-teachers" href="#">Teachers</a>
-          <a data-testid="nav-classes" href="#">Classes</a>
-          <a data-testid="nav-timetable" href="#">Timetable</a>
-          <a data-testid="nav-circulars" href="#">Circulars</a>
-          <a data-testid="nav-fees" href="#">Fees</a>
+          <a data-testid="nav-students" href="#"><Icon name="users" />Students</a>
+          <a data-testid="nav-parents" href="#"><Icon name="user-circle" />Parents</a>
+          <a data-testid="nav-teachers" href="#"><Icon name="chalkboard" />Teachers</a>
+          <a data-testid="nav-classes" href="#"><Icon name="grid" />Classes</a>
+          <a data-testid="nav-timetable" href="#"><Icon name="clock" />Timetable</a>
+          <a data-testid="nav-circulars" href="#"><Icon name="megaphone" />Circulars</a>
+          <a data-testid="nav-fees" href="#"><Icon name="receipt" />Fees</a>
         </template>
       </nav>
 
@@ -53,51 +57,77 @@ async function onLogout() {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f5f6f1;
 }
+
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.9rem 1.5rem;
-  background: #ffffff;
-  border-bottom: 1px solid #dcdfd5;
+  height: var(--topbar-height);
+  padding: 0 var(--space-4);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
 }
+
 .brand {
-  font-weight: 600;
-  color: #1b2420;
+  font-weight: 700;
+  color: var(--color-primary);
 }
+
 .logout {
-  border: 1px solid #dcdfd5;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  border: 1px solid var(--color-border);
   background: transparent;
-  border-radius: 6px;
-  padding: 0.4rem 0.8rem;
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.8rem;
+  font: inherit;
+  font-size: var(--font-size-sm);
   cursor: pointer;
+  transition: background var(--transition-fast);
 }
+.logout:hover {
+  background: var(--color-muted-bg);
+}
+
 .body {
   flex: 1;
   display: flex;
+  min-height: 0;
 }
+
 .sidenav {
-  width: 200px;
+  width: var(--sidebar-width);
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.2rem;
-  padding: 1rem;
-  border-right: 1px solid #dcdfd5;
-  background: #ffffff;
+  gap: 0.15rem;
+  padding: var(--space-3);
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface);
 }
+
 .sidenav a {
-  padding: 0.5rem 0.6rem;
-  border-radius: 6px;
-  color: #333b34;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-sm);
+  color: var(--color-text);
   text-decoration: none;
+  font-size: var(--font-size-sm);
+  transition: background var(--transition-fast);
 }
-.sidenav a:hover {
-  background: #eef0e9;
+.sidenav a:hover,
+.sidenav a:focus-visible {
+  background: var(--color-muted-bg);
 }
+
 .content {
   flex: 1;
-  padding: 2rem;
+  padding: var(--space-5) var(--space-6);
+  overflow-y: auto;
 }
 </style>
