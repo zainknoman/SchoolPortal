@@ -36,7 +36,7 @@ async function main() {
 
   // Admin has no domain profile row (no Teacher/ParentProfile) — the role on User is enough for the
   // staff console's RBAC-gated nav.
-  await prisma.user.create({
+  const adminUser = await prisma.user.create({
     data: {
       identifier: 'admin@seeds.edu.pk',
       passwordHash: await argon2.hash('ChangeMe123!'),
@@ -138,9 +138,37 @@ async function main() {
     })),
   });
 
+  // --- Diary: one sample homework entry for section 3A ---
+  const diaryEntry = await prisma.diaryEntry.create({
+    data: {
+      sectionId: section3A.id,
+      subjectId: subjects[0].id,
+      teacherId: teacher.id,
+      date: today,
+      text: 'کتاب صفحہ 12 مکمل کریں۔ کل اپنی ورک بک لائیں۔',
+      dueDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000),
+    },
+  });
+  void diaryEntry;
+
+  // --- Circular: one school-wide sample notice, delivered to both seeded parents ---
+  const circular = await prisma.circular.create({
+    data: {
+      title: 'Parent-Teacher Meeting — September',
+      description: 'PTMs for all grades will be held on the first Saturday of September, 9am-1pm.',
+      scope: 'school',
+      priority: 'normal',
+      authorId: adminUser.id,
+    },
+  });
+  await prisma.circularRecipient.createMany({
+    data: [parentAUser.id, parentBUser.id].map((userId) => ({ circularId: circular.id, userId })),
+  });
+
   console.log(
     'Seeded: 1 school, 2 campuses, 1 class/section, 1 teacher, 1 admin, 1 student, 2 linked parents, ' +
-      `${timetableRows.length} timetable periods, ${attendanceDates.length} attendance records.`,
+      `${timetableRows.length} timetable periods, ${attendanceDates.length} attendance records, ` +
+      '1 diary entry, 1 circular.',
   );
   console.log(
     'Login as parent-a@seeds.edu.pk / ChangeMe123! (or parent-b@... / teacher@... / admin@...) — dev only.',

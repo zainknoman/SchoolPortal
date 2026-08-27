@@ -50,6 +50,7 @@ model User {
   deviceTokens  DeviceToken[]
   sentMessages     Message[]         @relation("MessageSender")
   circularsCreated Circular[]        @relation("CircularAuthor")
+  circularRecipients CircularRecipient[]
 
   @@index([role])
 }
@@ -123,6 +124,8 @@ model Section {
   name      String   // e.g. "3A"
   students  Student[]
   timetables Timetable[]
+  diaryEntries DiaryEntry[]
+  circulars    Circular[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -162,7 +165,6 @@ model Student {
   name       String
   parents         StudentParent[]
   attendance      Attendance[]
-  diaryReads      DiaryEntry[]     @relation("DiaryEntryStudents")
   feeVouchers     FeeVoucher[]
   leaveRequests   LeaveRequest[]
   createdAt  DateTime @default(now())
@@ -236,18 +238,22 @@ model Attendance {
 }
 
 model DiaryEntry {
-  id         String    @id @default(uuid())
-  subjectId  String
-  subject    Subject   @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  teacherId  String
-  teacher    Teacher   @relation(fields: [teacherId], references: [id])
-  students   Student[] @relation("DiaryEntryStudents")
-  date       DateTime
-  text       String
-  dueDate    DateTime?
+  id          String            @id @default(uuid())
+  sectionId   String
+  section     Section           @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  subjectId   String
+  subject     Subject           @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacherId   String
+  teacher     Teacher           @relation(fields: [teacherId], references: [id])
+  date        DateTime
+  text        String
+  dueDate     DateTime?
   attachments DiaryAttachment[]
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@unique([sectionId, subjectId, date])
+  @@index([sectionId])
 }
 
 model DiaryAttachment {
@@ -260,18 +266,36 @@ model DiaryAttachment {
 }
 
 model Circular {
-  id          String   @id @default(uuid())
+  id          String               @id @default(uuid())
   title       String
   description String
-  scope       String   // "school" | "section"
-  priority    String   @default("normal")
+  scope       String               // "school" | "section"
+  sectionId   String?
+  section     Section?             @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  priority    String               @default("normal")
   authorId    String
-  author      User     @relation("CircularAuthor", fields: [authorId], references: [id])
-  publishedAt DateTime @default(now())
+  author      User                 @relation("CircularAuthor", fields: [authorId], references: [id])
+  publishedAt DateTime             @default(now())
   expiresAt   DateTime?
   attachments CircularAttachment[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  recipients  CircularRecipient[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@index([sectionId])
+}
+
+model CircularRecipient {
+  id         String    @id @default(uuid())
+  circularId String
+  circular   Circular  @relation(fields: [circularId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@unique([circularId, userId])
+  @@index([userId])
 }
 
 model CircularAttachment {
