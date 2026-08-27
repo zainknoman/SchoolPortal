@@ -9,6 +9,8 @@ import { TimetableModule } from './timetable/timetable.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { SectionsModule } from './sections/sections.module';
 import { FilesModule } from './files/files.module';
+import { SubjectsModule } from './subjects/subjects.module';
+import { DiaryModule } from './diary/diary.module';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { FilesModule } from './files/files.module';
     AttendanceModule,
     SectionsModule,
     FilesModule,
+    SubjectsModule,
+    DiaryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
