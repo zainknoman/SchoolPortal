@@ -68,8 +68,79 @@ async function main() {
     prisma.studentParent.create({ data: { studentId: student.id, parentProfileId: parentBProfile.id, relationship: 'father' } }),
   ]);
 
+  // --- Timetable: a Mon-Fri, 6-period week for section 3A, all taught by the one seeded teacher ---
+  const subjectNames = ['Mathematics', 'English', 'Urdu', 'Science', 'Social Studies', 'Art'];
+  const subjects = await Promise.all(
+    subjectNames.map((name) => prisma.subject.create({ data: { name } })),
+  );
+
+  const periodTimes: Array<[string, string]> = [
+    ['08:00', '08:40'],
+    ['08:40', '09:20'],
+    ['09:20', '10:00'],
+    ['10:20', '11:00'], // after a 20-minute break
+    ['11:00', '11:40'],
+    ['11:40', '12:20'],
+  ];
+
+  const timetableRows: Array<{
+    sectionId: string;
+    subjectId: string;
+    teacherId: string;
+    dayOfWeek: number;
+    period: number;
+    startTime: string;
+    endTime: string;
+    room: string;
+  }> = [];
+  for (let dayOfWeek = 1; dayOfWeek <= 5; dayOfWeek++) {
+    // Monday=1 .. Friday=5
+    periodTimes.forEach(([startTime, endTime], i) => {
+      const period = i + 1;
+      const subject = subjects[(dayOfWeek + period) % subjects.length];
+      timetableRows.push({
+        sectionId: section3A.id,
+        subjectId: subject.id,
+        teacherId: teacher.id,
+        dayOfWeek,
+        period,
+        startTime,
+        endTime,
+        room: '3A',
+      });
+    });
+  }
+  await prisma.timetable.createMany({ data: timetableRows });
+
+  // --- Attendance: the last 10 weekdays for the seeded student, mostly present ---
+  const attendanceStatuses: Array<'PRESENT' | 'ABSENT' | 'LATE'> = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const attendanceDates: Date[] = [];
+  for (const cursor = new Date(today); attendanceDates.length < 10; cursor.setDate(cursor.getDate() - 1)) {
+    const day = cursor.getDay();
+    if (day === 0 || day === 6) continue; // skip weekends
+    attendanceDates.push(new Date(cursor));
+  }
+  attendanceDates.forEach((_, i) => {
+    // one LATE and one ABSENT sprinkled in, the rest PRESENT
+    if (i === 2) attendanceStatuses.push('LATE');
+    else if (i === 5) attendanceStatuses.push('ABSENT');
+    else attendanceStatuses.push('PRESENT');
+  });
+
+  await prisma.attendance.createMany({
+    data: attendanceDates.map((date, i) => ({
+      studentId: student.id,
+      date,
+      status: attendanceStatuses[i],
+      markedById: teacher.id,
+    })),
+  });
+
   console.log(
-    'Seeded: 1 school, 2 campuses, 1 class/section, 1 teacher, 1 admin, 1 student, 2 linked parents.',
+    'Seeded: 1 school, 2 campuses, 1 class/section, 1 teacher, 1 admin, 1 student, 2 linked parents, ' +
+      `${timetableRows.length} timetable periods, ${attendanceDates.length} attendance records.`,
   );
   console.log(
     'Login as parent-a@seeds.edu.pk / ChangeMe123! (or parent-b@... / teacher@... / admin@...) — dev only.',

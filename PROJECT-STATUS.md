@@ -48,6 +48,19 @@ Repo: https://github.com/zainknoman/SchoolPortal
 - Verified: 31 backend unit + 13 e2e, 14 staff-console, 12 parent-app tests — all passing, all
   three lint/type-check/build clean
 
+## Dev environment note (2026-08-27)
+
+- [x] Fixed: local dev seed (`backend/prisma/seed.ts`) created school/campus/class/section/teacher/
+      admin/student/parents but never a Timetable or Attendance row (gap left over from FEAT-001;
+      Sprint 3-4 added those features but never touched the seed script) — parent-app Calendar tab
+      and any timetable/attendance query against a freshly seeded `dev.db` was correctly empty, not
+      broken. Seed now also creates a Mon-Fri/6-period timetable for section 3A and 10 weekdays of
+      attendance for the seeded student. Re-seed with `npx prisma migrate deploy` +
+      `npm run prisma:seed` after deleting `dev.db` to pick this up in an existing local checkout.
+- Reminder: none of backend (`npm run start:dev`, :3000), staff-console (`npm run dev`, :5173), or
+  parent-app (`flutter run -d chrome`, needs `D:\dev\flutter\bin` on PATH) auto-start — a "blank app"
+  is almost always one of these three not running, check that before assuming a code bug.
+
 ## Sprint 5-6 — Diary + Circulars 🔜 NEXT
 
 - [ ] **FEAT-008** — Diary/homework: per-subject entries, attachments, due dates, correct Urdu RTL
