@@ -5,10 +5,13 @@ import { App } from 'supertest/types';
 import * as argon2 from 'argon2';
 import { AppModule } from './../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { STORAGE_ADAPTER } from '../src/storage/storage-adapter';
+import type { StorageAdapter } from '../src/storage/storage-adapter';
 
 describe('Diary + Circulars (e2e)', () => {
   let app: INestApplication<App>;
   let prisma: PrismaService;
+  let storage: StorageAdapter;
   const password = 'CorrectHorseBattery9!';
   const ids: Record<string, string> = {};
 
@@ -26,6 +29,7 @@ describe('Diary + Circulars (e2e)', () => {
     }).compile();
     app = moduleFixture.createNestApplication();
     prisma = moduleFixture.get(PrismaService);
+    storage = moduleFixture.get(STORAGE_ADAPTER);
     await app.init();
 
     const staleAdmin = await prisma.user.findUnique({
@@ -120,6 +124,19 @@ describe('Diary + Circulars (e2e)', () => {
         },
       })
       .catch(() => undefined);
+
+    // The uploaded worksheet's File row (and its on-disk blob) has no cascade path from
+    // School/Section/DiaryEntry, so it must be cleaned up explicitly.
+    if (ids.uploadedFileId) {
+      const fileRecord = await prisma.file
+        .findUnique({ where: { id: ids.uploadedFileId } })
+        .catch(() => null);
+      if (fileRecord) {
+        await storage.delete(fileRecord.storageKey).catch(() => undefined);
+      }
+      await prisma.file.deleteMany({ where: { id: ids.uploadedFileId } }).catch(() => undefined);
+    }
+
     await app.close();
   });
 
@@ -199,6 +216,17 @@ describe('Diary + Circulars (e2e)', () => {
       expect.arrayContaining([expect.objectContaining({ id: ids.schoolCircular, readAt: null })]),
     );
 
+    // Prove the OTHER fixture parent got it too — not just an aggregate delivered count,
+    // which a static seed-data floor could satisfy even if dc-parent-b were never included.
+    const parentBToken = await loginAs('dc-parent-b@seeds.edu.pk');
+    const inboxB = await request(app.getHttpServer())
+      .get('/api/v1/circulars')
+      .set('Authorization', `Bearer ${parentBToken}`)
+      .expect(200);
+    expect(inboxB.body).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: ids.schoolCircular, readAt: null })]),
+    );
+
     await request(app.getHttpServer())
       .post(`/api/v1/circulars/${ids.schoolCircular}/read`)
       .set('Authorization', `Bearer ${parentAToken}`)
@@ -265,6 +293,7 @@ describe('Diary + Circulars (e2e)', () => {
       .attach('file', Buffer.from('worksheet contents'), 'worksheet.txt')
       .expect(201);
     const fileId = upload.body.id as string;
+    ids.uploadedFileId = fileId;
 
     const today = new Date().toISOString().slice(0, 10);
     await request(app.getHttpServer())
