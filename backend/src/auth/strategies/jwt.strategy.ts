@@ -11,7 +11,12 @@ export interface JwtPayload {
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      // Header is tried first; ?access_token= is a fallback so a direct file-download link
+      // (which can't set headers) still authenticates.
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        ExtractJwt.fromUrlQueryParameter('access_token'),
+      ]),
       ignoreExpiration: false,
       secretOrKey: process.env.JWT_ACCESS_SECRET ?? 'dev-only-change-me-access',
     });

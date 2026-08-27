@@ -8,6 +8,7 @@ import { MeModule } from './me/me.module';
 import { TimetableModule } from './timetable/timetable.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { SectionsModule } from './sections/sections.module';
+import { FilesModule } from './files/files.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { SectionsModule } from './sections/sections.module';
     TimetableModule,
     AttendanceModule,
     SectionsModule,
+    FilesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
