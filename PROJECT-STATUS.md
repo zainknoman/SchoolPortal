@@ -33,15 +33,22 @@ Repo: https://github.com/zainknoman/SchoolPortal
 - [x] Design system (ui-ux-pro-max, curated) applied to both clients — Plus Jakarta Sans,
       navy/blue-accent palette, one consistent brand (`staff-console/design-system/seeds-staff-console/MASTER.md`)
 
-## Sprint 3-4 — Timetable + Attendance 🔜 NEXT
+## Sprint 3-4 — Timetable + Attendance ✅ DONE
 
-- [ ] **FEAT-006** — Timetable: backend API + staff-console screen + parent-app calendar tab
-      (period/time/subject/teacher-optional/room-optional)
-- [ ] **FEAT-007** — Attendance: teacher marks present/absent/late/leave/holiday; immutable from
-      the parent side; every change audit-logged; parent sees today's status + monthly calendar +
-      attendance %
+- [x] **FEAT-006** — Timetable: `GET /students/:id/timetable` (ownership-checked) + `POST
+      /timetable` (Admin/Super Admin only); parent-app Calendar tab lists day/period/time/subject/
+      teacher/room
+- [x] **FEAT-007** — Attendance: `POST /attendance` (TEACHER/Admin/Super Admin only — a PARENT
+      token is rejected outright, e2e-verified) writes an AuditLog row every time; `GET
+      /students/:id/attendance?month=` returns today's status + a monthly day list + a summary
+      (holiday-excluded attendance %); staff-console Teacher gets a real attendance-marking screen
+      (section → roster → per-student status → save); parent-app Calendar tab shows it all
+- [x] New shared `StudentAccessService` (parent-isolation check) + `GET /sections` /
+      `GET /sections/:id/students` (staff-only, needed so the staff console can pick who to mark)
+- Verified: 31 backend unit + 13 e2e, 14 staff-console, 12 parent-app tests — all passing, all
+  three lint/type-check/build clean
 
-## Sprint 5-6 — Diary + Circulars ⏳ PENDING
+## Sprint 5-6 — Diary + Circulars 🔜 NEXT
 
 - [ ] **FEAT-008** — Diary/homework: per-subject entries, attachments, due dates, correct Urdu RTL
       rendering (no auto-translation)
@@ -96,5 +103,5 @@ Repo: https://github.com/zainknoman/SchoolPortal
 
 ---
 
-**Next step:** Sprint 3-4 — FEAT-006 (Timetable) + FEAT-007 (Attendance), backend API through both
-clients, same TDD rigor as Sprints 1-2.
+**Next step:** Sprint 5-6 — FEAT-008 (Diary/homework, incl. Urdu RTL) + FEAT-009 (Circulars, incl.
+read/unread tracking), backend API through both clients, same TDD rigor as Sprints 1-4.
