@@ -11,6 +11,7 @@ import { SectionsModule } from './sections/sections.module';
 import { FilesModule } from './files/files.module';
 import { SubjectsModule } from './subjects/subjects.module';
 import { DiaryModule } from './diary/diary.module';
+import { CircularsModule } from './circulars/circulars.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { DiaryModule } from './diary/diary.module';
     FilesModule,
     SubjectsModule,
     DiaryModule,
+    CircularsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
