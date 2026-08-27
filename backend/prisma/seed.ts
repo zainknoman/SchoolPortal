@@ -34,6 +34,16 @@ async function main() {
   });
   const teacher = await prisma.teacher.create({ data: { userId: teacherUser.id, name: 'Ms. Sample Teacher' } });
 
+  // Admin has no domain profile row (no Teacher/ParentProfile) — the role on User is enough for the
+  // staff console's RBAC-gated nav.
+  await prisma.user.create({
+    data: {
+      identifier: 'admin@seeds.edu.pk',
+      passwordHash: await argon2.hash('ChangeMe123!'),
+      role: 'SCHOOL_ADMIN',
+    },
+  });
+
   const student = await prisma.student.create({
     data: { campusId: gulistan.id, sectionId: section3A.id, grNumber: 'GR-1001', name: 'Eshaal Sample' },
   });
@@ -58,8 +68,12 @@ async function main() {
     prisma.studentParent.create({ data: { studentId: student.id, parentProfileId: parentBProfile.id, relationship: 'father' } }),
   ]);
 
-  console.log('Seeded: 1 school, 2 campuses, 1 class/section, 1 teacher, 1 student, 2 linked parents.');
-  console.log('Login as parent-a@seeds.edu.pk / ChangeMe123! (or parent-b@... / teacher@...) — dev only.');
+  console.log(
+    'Seeded: 1 school, 2 campuses, 1 class/section, 1 teacher, 1 admin, 1 student, 2 linked parents.',
+  );
+  console.log(
+    'Login as parent-a@seeds.edu.pk / ChangeMe123! (or parent-b@... / teacher@... / admin@...) — dev only.',
+  );
 
   await prisma.$disconnect();
 }
