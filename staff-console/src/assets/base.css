@@ -15,6 +15,7 @@
 
   --font-family-base:
     'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-urdu: 'Noto Nastaliq Urdu', 'Plus Jakarta Sans', sans-serif;
   --font-size-xs: 0.8rem;
   --font-size-sm: 0.875rem;
   --font-size-base: 1rem;
