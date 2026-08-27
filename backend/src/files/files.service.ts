@@ -1,7 +1,8 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { extname } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
-import { STORAGE_ADAPTER, StorageAdapter } from '../storage/storage-adapter';
+import { STORAGE_ADAPTER } from '../storage/storage-adapter';
+import type { StorageAdapter } from '../storage/storage-adapter';
 
 export interface FileMeta {
   id: string;
