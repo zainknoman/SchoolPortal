@@ -60,6 +60,9 @@ const presentCount = computed(
 const absentCount = computed(
   () => Object.values(statuses.value).filter((s) => s === 'ABSENT').length,
 );
+const assignedCount = computed(
+  () => Object.values(statuses.value).filter((s) => s !== '').length,
+);
 
 async function onSave() {
   if (!auth.accessToken) return;
@@ -189,7 +192,7 @@ async function onSave() {
         <span><strong>{{ students.length }}</strong> Total</span>
       </div>
       <button data-testid="save-attendance" :disabled="isSaving" @click="onSave">
-        {{ isSaving ? 'Saving…' : `Submit Attendance (${presentCount}/${students.length})` }}
+        {{ isSaving ? 'Saving…' : `Submit Attendance (${assignedCount}/${students.length})` }}
       </button>
     </footer>
   </div>

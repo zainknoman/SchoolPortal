@@ -97,6 +97,28 @@ describe('AttendanceView', () => {
     expect(wrapper.text()).toContain('Submit Attendance (2/2)');
   });
 
+  it('submit button counts every assigned status, not just Present', async () => {
+    vi.mocked(api.listSections).mockResolvedValue([
+      { id: 'sec-1', name: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar' },
+    ]);
+    vi.mocked(api.sectionStudents).mockResolvedValue([
+      { id: 's1', name: 'Ali Khan', grNumber: 'GR-1001' },
+      { id: 's2', name: 'Ayesha Noor', grNumber: 'GR-1002' },
+      { id: 's3', name: 'Bilal Ahmed', grNumber: 'GR-1003' },
+    ]);
+
+    const wrapper = mount(AttendanceView);
+    await flushPromises();
+    await wrapper.find('select[data-testid="section-select"]').setValue('sec-1');
+    await flushPromises();
+
+    await wrapper.find('[data-testid="status-s1-present"]').trigger('click');
+    await wrapper.find('[data-testid="status-s2-absent"]').trigger('click');
+    await wrapper.find('[data-testid="status-s3-late"]').trigger('click');
+
+    expect(wrapper.text()).toContain('Submit Attendance (3/3)');
+  });
+
   it('marks a student Leave via the overflow menu', async () => {
     vi.mocked(api.listSections).mockResolvedValue([
       { id: 'sec-1', name: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar' },
