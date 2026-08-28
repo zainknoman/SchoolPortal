@@ -144,6 +144,8 @@ Description: FCM push for attendance/diary/circular/message/fee events; deep-lin
 Domain: data,ui,mobile,payments  Complexity: L  Dependencies: FEAT-001,FEAT-004,FEAT-005
 Description: Server-computed voucher, PDF generation, JazzCash/EasyPaisa in-app payment, payment
 history/receipts. Never trust client-computed totals.
+Note: build against FeePayment/FeePaymentAllocation (Sprint 6.5) — a payment can span multiple
+vouchers; a voucher's amount paid is the sum of its allocations, not a stored field.
 
 ### FEAT-013 — Leave applications
 Domain: data,ui,mobile  Complexity: S  Dependencies: FEAT-007

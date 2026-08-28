@@ -100,6 +100,44 @@ Repo: https://github.com/zainknoman/SchoolPortal
       router/shell, so this class of bug won't show up in `npm test` — worth a browser smoke-test
       pass after any new route lands, not just unit/e2e coverage).
 
+## Sprint 6.5 — Data Model Correction ✅ DONE
+
+- [x] Added `Enrollment` (student ↔ campus/section/academic-session, dated) — replaces
+      `Student.campusId`/`sectionId` direct fields. Fixes a real bug: `Diary`/`Timetable`/`Sections`/
+      `Circulars`/`Me` all resolved a student's section by reading the *current* placement, so a
+      mid-year section transfer would have silently rewritten what a parent saw for past months
+      (most visibly in Diary's month view). New shared `EnrollmentService` (same pattern as
+      `StudentAccessService`) is now the one place every module resolves this.
+- [x] `FeePayment` now allocates across vouchers via `FeePaymentAllocation` instead of a 1:1
+      `feeVoucherId` tie — done ahead of `FEAT-012` (Fees, not yet built) so that feature isn't
+      built against a shape that can't represent a lump-sum or partial payment.
+- [x] `Student → Attendance/FeeVoucher/LeaveRequest` changed from `onDelete: Cascade` to
+      `Restrict` — deleting a student can no longer silently wipe their attendance/fee/leave
+      history.
+- Scope note: did **not** adopt multi-tenancy/RLS or a full accounting ledger
+  (Invoice/Refund/Reconciliation) — this project is a single-school platform per
+  `docs/Seedsapk/MVP-Plan-V3.md`, not multi-tenant SaaS; see
+  `docs/Plan-Ideas/Feature-Chatgpt-CodeValidateFEAT5-6.txt` for the full analysis this sprint
+  addresses (and what it deliberately doesn't).
+- Found and fixed along the way (not anticipated when this sprint was planned): `FilesAccessService`
+  also depended on the removed `Section.students` relation (a sixth consumer the original plan
+  missed) — fixed to resolve via active `Enrollment`, same as the five originally-planned consumers.
+  `EnrollmentService.getEnrollmentForDate`'s single-point-in-time query broke Diary's month view in
+  the common case (any enrollment that didn't start exactly on the 1st of the queried month) — widened
+  to an overlap-window query, backward-compatible for every other caller.
+- Follow-up (tracked, not blocking): `Section/Class/Campus → Timetable/DiaryEntry/Circular` are
+  still `onDelete: Cascade` — lower urgency than the financial/attendance-compliance tables fixed
+  here, revisit before a second school/campus is onboarded. `StudentAccessService`'s staff-role
+  free-pass (any `TEACHER`/`SCHOOL_ADMIN`/`ACCOUNTS`/`SUPER_ADMIN` can access any student) is
+  unchanged — fine for one campus's staff, worth scoping if multi-campus staff restriction becomes
+  a real need. `MeService.getChildrenForUser` assumes every student has exactly one ACTIVE
+  enrollment at all times and will throw an unhandled error otherwise — currently unreachable (no
+  code path creates a student with zero active enrollments yet), but will need revisiting once a
+  student-transfer workflow is built. The new `cascade-delete-restrictions.e2e-spec.ts` doesn't yet
+  follow this codebase's established self-healing pre-flight cleanup pattern (see
+  `timetable-attendance.e2e-spec.ts`), so a crashed run could leave stale fixtures — worth
+  bringing in line with the other e2e specs.
+
 ## Sprint 7-8 — Messages + Notifications 🔜 NEXT
 
 - [ ] **FEAT-010** — Messages: scoped inbox (Parent → Class Teacher / Admin / Accounts / Principal
@@ -149,4 +187,4 @@ Repo: https://github.com/zainknoman/SchoolPortal
 ---
 
 **Next step:** Sprint 7-8 — FEAT-010 (Messages, scoped inbox) + FEAT-011 (Notifications, FCM wiring
-+ deep links), backend API through both clients, same TDD rigor as Sprints 1-6.
++ deep links), backend API through both clients, same TDD rigor as Sprints 1-6.5.
