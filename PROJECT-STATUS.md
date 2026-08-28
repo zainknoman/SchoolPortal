@@ -90,6 +90,15 @@ Repo: https://github.com/zainknoman/SchoolPortal
   files route; `Circular` school-wide fan-out and staff file access have no school/campus
   boundary (fine today — single-school system — but will need one before a second school is
   onboarded). Bundle into a short "file-storage hardening" pass before any non-local deployment.
+- [x] Fixed (2026-08-28): `/teacher/diary` and `/admin/circulars` routed straight to `DiaryView.vue`/
+      `CircularsView.vue`, skipping the `AppShell` wrapper every other route uses (see
+      `TeacherHomeView.vue` wrapping `AttendanceView.vue`) — so navigating into either screen made
+      the entire sidebar nav and logout button disappear, with no way back except the browser's
+      back button. Added `DiaryPageView.vue`/`CircularsPageView.vue` thin wrappers, matching the
+      existing pattern, and repointed the router at them. Caught during manual post-merge browser
+      testing, not by any automated test (the view specs mount the view directly, without a
+      router/shell, so this class of bug won't show up in `npm test` — worth a browser smoke-test
+      pass after any new route lands, not just unit/e2e coverage).
 
 ## Sprint 7-8 — Messages + Notifications 🔜 NEXT
 
