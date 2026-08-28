@@ -5,13 +5,13 @@ import { PrismaService } from '../prisma/prisma.service';
 describe('SectionsService', () => {
   let service: SectionsService;
   let prisma: {
-    student: { findMany: jest.Mock };
+    enrollment: { findMany: jest.Mock };
     section: { findMany: jest.Mock };
   };
 
   beforeEach(async () => {
     prisma = {
-      student: { findMany: jest.fn() },
+      enrollment: { findMany: jest.fn() },
       section: { findMany: jest.fn() },
     };
     const moduleRef = await Test.createTestingModule({
@@ -44,17 +44,17 @@ describe('SectionsService', () => {
     ]);
   });
 
-  it('lists students in a section ordered by name', async () => {
-    prisma.student.findMany.mockResolvedValue([
-      { id: 's1', name: 'Eshaal', grNumber: 'GR-1001' },
+  it('lists students with an active enrollment in a section, ordered by name', async () => {
+    prisma.enrollment.findMany.mockResolvedValue([
+      { student: { id: 's1', name: 'Eshaal', grNumber: 'GR-1001' } },
     ]);
 
     const result = await service.getStudents('sec-1');
 
-    expect(prisma.student.findMany).toHaveBeenCalledWith({
-      where: { sectionId: 'sec-1' },
-      orderBy: { name: 'asc' },
-      select: { id: true, name: true, grNumber: true },
+    expect(prisma.enrollment.findMany).toHaveBeenCalledWith({
+      where: { sectionId: 'sec-1', status: 'ACTIVE' },
+      orderBy: { student: { name: 'asc' } },
+      select: { student: { select: { id: true, name: true, grNumber: true } } },
     });
     expect(result).toEqual([{ id: 's1', name: 'Eshaal', grNumber: 'GR-1001' }]);
   });

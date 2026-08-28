@@ -27,10 +27,11 @@ export class SectionsService {
   }
 
   async getStudents(sectionId: string) {
-    return this.prisma.student.findMany({
-      where: { sectionId },
-      orderBy: { name: 'asc' },
-      select: { id: true, name: true, grNumber: true },
+    const rows = await this.prisma.enrollment.findMany({
+      where: { sectionId, status: 'ACTIVE' },
+      orderBy: { student: { name: 'asc' } },
+      select: { student: { select: { id: true, name: true, grNumber: true } } },
     });
+    return rows.map((r) => r.student);
   }
 }
