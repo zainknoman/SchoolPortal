@@ -6,6 +6,9 @@ plan/*
 # --- local git worktrees (scratch, not part of the repo tree) ---
 .worktrees/
 
+# --- subagent-driven-development scratch (ledger, briefs, review packages) ---
+.superpowers/
+
 # --- monorepo build output / deps / local env ---
 **/node_modules/
 **/dist/
