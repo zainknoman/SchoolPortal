@@ -30,8 +30,8 @@ export class FilesController {
   @Roles('TEACHER', 'SCHOOL_ADMIN', 'SUPER_ADMIN')
   @Post()
   @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
-  upload(@UploadedFile() file: Express.Multer.File) {
-    return this.filesService.upload(file);
+  upload(@UploadedFile() file: Express.Multer.File, @Req() req: AuthenticatedRequest) {
+    return this.filesService.upload(file, req.user.id);
   }
 
   @Get(':id')
@@ -42,9 +42,15 @@ export class FilesController {
   ) {
     await this.filesAccess.assertCanAccessFile(req.user, id);
     const { buffer, originalName, mimeType } = await this.filesService.read(id);
+    // Serve as a forced download (not inline) so an attacker-controlled mimetype/filename
+    // (e.g. a .html file declared as text/html) can never render as a page on this origin —
+    // which matters here because download links carry the caller's JWT via ?access_token=.
+    // Strip quotes from the filename to prevent header injection via Content-Disposition.
+    const safeName = originalName.replace(/"/g, '');
     res.set({
       'Content-Type': mimeType,
-      'Content-Disposition': `inline; filename="${originalName}"`,
+      'Content-Disposition': `attachment; filename="${safeName}"`,
+      'X-Content-Type-Options': 'nosniff',
     });
     res.send(buffer);
   }

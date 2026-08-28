@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import { api, type SectionSummary, type CircularSummary } from '../lib/api';
+import { detectDirection } from '../lib/textDirection';
 
 type CircularScope = 'school' | 'section';
 
@@ -148,7 +149,7 @@ async function onPublish() {
       <h2>Published circulars</h2>
       <ul class="circulars-list">
         <li v-for="c in circulars" :key="c.id">
-          <strong>{{ c.title }}</strong> — {{ c.scope }}
+          <strong :dir="detectDirection(c.title)">{{ c.title }}</strong> — {{ c.scope }}
           <span data-testid="stats">Delivered {{ c.delivered }} · Read {{ c.read }}</span>
         </li>
       </ul>

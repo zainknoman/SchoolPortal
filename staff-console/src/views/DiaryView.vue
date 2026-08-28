@@ -153,7 +153,7 @@ async function onPost() {
       <h2>This section's entries</h2>
       <ul class="entries">
         <li v-for="entry in entries" :key="entry.id">
-          <strong>{{ entry.subject }}</strong> — {{ entry.date }}
+          <strong :dir="detectDirection(entry.subject)">{{ entry.subject }}</strong> — {{ entry.date }}
           <span v-if="entry.dueDate"> (due {{ entry.dueDate }})</span>
           <DirectionalText :text="entry.text" />
         </li>

@@ -67,7 +67,7 @@ class _CircularsTabState extends State<CircularsTab> {
         return ListTile(
           onTap: () => _onOpen(c),
           leading: Icon(isUnread ? Icons.circle : Icons.circle_outlined, size: 12),
-          title: Text(
+          title: DirectionalText(
             c.title,
             style: TextStyle(fontWeight: isUnread ? FontWeight.bold : FontWeight.normal),
           ),

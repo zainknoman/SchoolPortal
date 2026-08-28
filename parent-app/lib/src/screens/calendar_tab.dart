@@ -214,9 +214,15 @@ class _DiaryTabState extends State<_DiaryTab> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '${e.subject} · ${e.date}${e.dueDate != null ? ' (due ${e.dueDate})' : ''}',
-                style: Theme.of(context).textTheme.titleSmall,
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  DirectionalText(e.subject, style: Theme.of(context).textTheme.titleSmall),
+                  Text(
+                    ' · ${e.date}${e.dueDate != null ? ' (due ${e.dueDate})' : ''}',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ],
               ),
               const SizedBox(height: 4),
               DirectionalText(e.text),

@@ -295,6 +295,12 @@ describe('Diary + Circulars (e2e)', () => {
     const fileId = upload.body.id as string;
     ids.uploadedFileId = fileId;
 
+    // file.upload must be audited (design spec: every write gets an AuditLog row).
+    const uploadAudit = await prisma.auditLog.findFirst({
+      where: { action: 'file.upload', entity: 'File', entityId: fileId },
+    });
+    expect(uploadAudit).not.toBeNull();
+
     const today = new Date().toISOString().slice(0, 10);
     await request(app.getHttpServer())
       .post('/api/v1/diary')
@@ -314,6 +320,10 @@ describe('Diary + Circulars (e2e)', () => {
       .set('Authorization', `Bearer ${parentAToken}`)
       .expect(200);
     expect(download.text).toBe('worksheet contents');
+    // Must be forced as a download (never inline) and marked nosniff — an attacker-controlled
+    // mimetype must never render as a page on this token-bearing origin.
+    expect(download.headers['content-disposition']).toMatch(/^attachment;/);
+    expect(download.headers['x-content-type-options']).toBe('nosniff');
 
     // Same download, authenticated via ?access_token= instead of a header — proves a plain
     // download link (which can't set headers) still works.

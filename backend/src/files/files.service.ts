@@ -18,7 +18,7 @@ export class FilesService {
     @Inject(STORAGE_ADAPTER) private readonly storage: StorageAdapter,
   ) {}
 
-  async upload(file: Express.Multer.File): Promise<FileMeta> {
+  async upload(file: Express.Multer.File, uploadingUserId: string): Promise<FileMeta> {
     const storageKey = await this.storage.save(file.buffer, extname(file.originalname));
     const record = await this.prisma.file.create({
       data: {
@@ -28,6 +28,21 @@ export class FilesService {
         sizeBytes: file.size,
       },
     });
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: uploadingUserId,
+        action: 'file.upload',
+        entity: 'File',
+        entityId: record.id,
+        metadata: JSON.stringify({
+          originalName: record.originalName,
+          mimeType: record.mimeType,
+          sizeBytes: record.sizeBytes,
+        }),
+      },
+    });
+
     return {
       id: record.id,
       originalName: record.originalName,
