@@ -27,8 +27,11 @@ export class MeService {
           include: {
             student: {
               include: {
-                campus: true,
-                section: { include: { class: true } },
+                enrollments: {
+                  where: { status: 'ACTIVE' },
+                  take: 1,
+                  include: { campus: true, section: { include: { class: true } } },
+                },
               },
             },
           },
@@ -40,13 +43,16 @@ export class MeService {
       return [];
     }
 
-    return parentProfile.children.map(({ student }) => ({
-      id: student.id,
-      name: student.name,
-      grNumber: student.grNumber,
-      campus: student.campus.name,
-      class: student.section.class.name,
-      section: student.section.name,
-    }));
+    return parentProfile.children.map(({ student }) => {
+      const enrollment = student.enrollments[0];
+      return {
+        id: student.id,
+        name: student.name,
+        grNumber: student.grNumber,
+        campus: enrollment.campus.name,
+        class: enrollment.section.class.name,
+        section: enrollment.section.name,
+      };
+    });
   }
 }

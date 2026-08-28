@@ -29,12 +29,16 @@ describe('MeService', () => {
             id: 's-1',
             name: 'Eshaal',
             grNumber: 'GR-1001',
-            campus: { id: 'c-1', name: 'Gulistan-e-Jauhar' },
-            section: {
-              id: 'sec-1',
-              name: '3A',
-              class: { id: 'cl-1', name: 'Grade 3' },
-            },
+            enrollments: [
+              {
+                campus: { id: 'c-1', name: 'Gulistan-e-Jauhar' },
+                section: {
+                  id: 'sec-1',
+                  name: '3A',
+                  class: { id: 'cl-1', name: 'Grade 3' },
+                },
+              },
+            ],
           },
         },
         {
@@ -42,12 +46,16 @@ describe('MeService', () => {
             id: 's-2',
             name: 'Ahmed',
             grNumber: 'GR-2002',
-            campus: { id: 'c-2', name: 'Gulshan-e-Iqbal' },
-            section: {
-              id: 'sec-2',
-              name: '6B',
-              class: { id: 'cl-2', name: 'Grade 6' },
-            },
+            enrollments: [
+              {
+                campus: { id: 'c-2', name: 'Gulshan-e-Iqbal' },
+                section: {
+                  id: 'sec-2',
+                  name: '6B',
+                  class: { id: 'cl-2', name: 'Grade 6' },
+                },
+              },
+            ],
           },
         },
       ],
@@ -86,12 +94,16 @@ describe('MeService', () => {
             id: 's-1',
             name: 'Eshaal',
             grNumber: 'GR-1001',
-            campus: { id: 'c-1', name: 'Gulistan-e-Jauhar' },
-            section: {
-              id: 'sec-1',
-              name: '3A',
-              class: { id: 'cl-1', name: 'Grade 3' },
-            },
+            enrollments: [
+              {
+                campus: { id: 'c-1', name: 'Gulistan-e-Jauhar' },
+                section: {
+                  id: 'sec-1',
+                  name: '3A',
+                  class: { id: 'cl-1', name: 'Grade 3' },
+                },
+              },
+            ],
           },
         },
       ],
