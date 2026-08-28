@@ -27,7 +27,7 @@ const router = createRouter({
     {
       path: '/teacher/diary',
       name: 'teacher-diary',
-      component: () => import('../views/DiaryView.vue'),
+      component: () => import('../views/DiaryPageView.vue'),
       meta: { requiresRole: ['TEACHER'] },
     },
     {
@@ -39,7 +39,7 @@ const router = createRouter({
     {
       path: '/admin/circulars',
       name: 'admin-circulars',
-      component: () => import('../views/CircularsView.vue'),
+      component: () => import('../views/CircularsPageView.vue'),
       meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'] },
     },
     { path: '/', redirect: '/login' },
