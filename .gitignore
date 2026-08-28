@@ -3,6 +3,9 @@ plan/*
 !plan/docs/
 .agentic-builder/
 
+# --- local git worktrees (scratch, not part of the repo tree) ---
+.worktrees/
+
 # --- monorepo build output / deps / local env ---
 **/node_modules/
 **/dist/
