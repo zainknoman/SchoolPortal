@@ -52,6 +52,65 @@ describe('DiaryView', () => {
     expect(wrapper.text()).toContain('posted');
   });
 
+  it('snapshots form fields before the upload loop so mid-upload edits do not change what gets posted', async () => {
+    vi.mocked(api.listSections).mockResolvedValue([
+      { id: 'sec-1', name: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar' },
+      { id: 'sec-2', name: '3B', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar' },
+    ]);
+    vi.mocked(api.listSubjects).mockResolvedValue([{ id: 'sub-1', name: 'Urdu' }]);
+    vi.mocked(api.listSectionDiary).mockResolvedValue([]);
+    vi.mocked(api.createDiaryEntry).mockResolvedValue(undefined);
+
+    let resolveUpload: (value: { id: string }) => void = () => {};
+    vi.mocked(api.uploadFile).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveUpload = resolve;
+        }),
+    );
+
+    const wrapper = mount(DiaryView);
+    await flushPromises();
+
+    await wrapper.find('select[data-testid="section-select"]').setValue('sec-1');
+    await flushPromises();
+    await wrapper.find('select[data-testid="subject-select"]').setValue('sub-1');
+    await wrapper.find('textarea[data-testid="entry-text"]').setValue('Read chapter 3.');
+
+    const fileInput = wrapper.find<HTMLInputElement>('[data-testid="file-input"]');
+    const file = new File(['content'], 'notes.pdf', { type: 'application/pdf' });
+    Object.defineProperty(fileInput.element, 'files', { value: [file] });
+    await fileInput.trigger('change');
+
+    await wrapper.find('[data-testid="post-entry"]').trigger('click');
+    await flushPromises();
+
+    // Upload is in flight; fields should now be disabled...
+    expect((wrapper.find('select[data-testid="section-select"]').element as HTMLSelectElement).disabled).toBe(
+      true,
+    );
+    expect((wrapper.find('textarea[data-testid="entry-text"]').element as HTMLTextAreaElement).disabled).toBe(
+      true,
+    );
+
+    // ...and even if the underlying reactive state is changed mid-upload, the snapshot protects the payload.
+    await wrapper.find('select[data-testid="section-select"]').setValue('sec-2');
+    await wrapper.find('textarea[data-testid="entry-text"]').setValue('Changed after clicking post.');
+
+    resolveUpload({ id: 'file-1' });
+    await flushPromises();
+
+    expect(api.createDiaryEntry).toHaveBeenCalledWith(
+      'token-1',
+      expect.objectContaining({
+        sectionId: 'sec-1',
+        subjectId: 'sub-1',
+        text: 'Read chapter 3.',
+        fileIds: ['file-1'],
+      }),
+    );
+  });
+
   it('shows an error message if posting fails', async () => {
     vi.mocked(api.listSections).mockResolvedValue([
       { id: 'sec-1', name: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar' },

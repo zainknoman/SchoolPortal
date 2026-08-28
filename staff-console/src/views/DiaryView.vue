@@ -57,19 +57,27 @@ async function onPost() {
   errorMessage.value = null;
   isSaving.value = true;
 
+  // Snapshot the form fields synchronously, before the upload loop's first await,
+  // so later user edits to the reactive refs cannot change what gets posted.
+  const accessToken = auth.accessToken;
+  const sectionId = selectedSectionId.value;
+  const subjectId = selectedSubjectId.value;
+  const entryText = text.value;
+  const entryDueDate = dueDate.value;
+
   try {
     const fileIds: string[] = [];
     for (const file of files.value) {
-      const uploaded = await api.uploadFile(auth.accessToken, file);
+      const uploaded = await api.uploadFile(accessToken, file);
       fileIds.push(uploaded.id);
     }
 
-    await api.createDiaryEntry(auth.accessToken, {
-      sectionId: selectedSectionId.value,
-      subjectId: selectedSubjectId.value,
+    await api.createDiaryEntry(accessToken, {
+      sectionId,
+      subjectId,
       date: today,
-      text: text.value,
-      dueDate: dueDate.value || undefined,
+      text: entryText,
+      dueDate: entryDueDate || undefined,
       fileIds: fileIds.length ? fileIds : undefined,
     });
 
@@ -93,7 +101,7 @@ async function onPost() {
 
     <label class="field">
       <span>Section</span>
-      <select data-testid="section-select" v-model="selectedSectionId" @change="loadEntries">
+      <select data-testid="section-select" v-model="selectedSectionId" :disabled="isSaving" @change="loadEntries">
         <option value="" disabled>Choose a section</option>
         <option v-for="s in sections" :key="s.id" :value="s.id">
           {{ s.className }} {{ s.name }} — {{ s.campusName }}
@@ -103,7 +111,7 @@ async function onPost() {
 
     <label class="field">
       <span>Subject</span>
-      <select data-testid="subject-select" v-model="selectedSubjectId">
+      <select data-testid="subject-select" v-model="selectedSubjectId" :disabled="isSaving">
         <option value="" disabled>Choose a subject</option>
         <option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.name }}</option>
       </select>
@@ -111,17 +119,23 @@ async function onPost() {
 
     <label class="field">
       <span>Due date (optional)</span>
-      <input data-testid="due-date" type="date" v-model="dueDate" />
+      <input data-testid="due-date" type="date" v-model="dueDate" :disabled="isSaving" />
     </label>
 
     <label class="field">
       <span>Entry</span>
-      <textarea data-testid="entry-text" v-model="text" rows="4" :dir="detectDirection(text)"></textarea>
+      <textarea
+        data-testid="entry-text"
+        v-model="text"
+        rows="4"
+        :dir="detectDirection(text)"
+        :disabled="isSaving"
+      ></textarea>
     </label>
 
     <label class="field">
       <span>Attachments (optional)</span>
-      <input data-testid="file-input" type="file" multiple @change="onFileChange" />
+      <input data-testid="file-input" type="file" multiple :disabled="isSaving" @change="onFileChange" />
     </label>
 
     <p v-if="message" class="success" data-testid="success">{{ message }}</p>
