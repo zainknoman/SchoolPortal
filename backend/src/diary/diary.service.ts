@@ -103,7 +103,9 @@ export class DiaryService {
 
   async getForStudent(studentId: string, month: string): Promise<DiaryEntrySummary[]> {
     const monthStart = new Date(`${month}-01T00:00:00.000Z`);
-    const enrollment = await this.enrollmentService.getEnrollmentForDate(studentId, monthStart);
+    const monthEnd = new Date(monthStart);
+    monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1);
+    const enrollment = await this.enrollmentService.getEnrollmentForDate(studentId, monthStart, monthEnd);
     return this.getForSection(enrollment.sectionId, month);
   }
 }

@@ -27,12 +27,18 @@ export class EnrollmentService {
    * Resolves which section a student belonged to as of a given date — NOT the student's current
    * section. Use for any month/date-scoped query (e.g. Diary) so a later section transfer doesn't
    * retroactively change what a past month shows.
+   *
+   * Pass `windowEnd` when the caller cares about a date *range* (e.g. a calendar month), not a
+   * single instant — this widens the match to "does this enrollment overlap [date, windowEnd)",
+   * so an enrollment that started partway through the queried range still matches. Without
+   * `windowEnd`, the query is the original single-point check: does this enrollment cover `date`
+   * exactly.
    */
-  async getEnrollmentForDate(studentId: string, date: Date) {
+  async getEnrollmentForDate(studentId: string, date: Date, windowEnd?: Date) {
     const enrollment = await this.prisma.enrollment.findFirst({
       where: {
         studentId,
-        startDate: { lte: date },
+        startDate: windowEnd ? { lt: windowEnd } : { lte: date },
         OR: [{ endDate: null }, { endDate: { gte: date } }],
       },
       orderBy: { startDate: 'desc' },

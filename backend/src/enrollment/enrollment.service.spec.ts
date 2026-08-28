@@ -57,4 +57,23 @@ describe('EnrollmentService', () => {
       service.getEnrollmentForDate('s1', new Date('2020-01-01')),
     ).rejects.toThrow(NotFoundException);
   });
+
+  it('widens the match to an overlap window when windowEnd is provided, for an enrollment that started after date but before windowEnd', async () => {
+    prisma.enrollment.findFirst.mockResolvedValue({ id: 'enr-mid-month', sectionId: 'sec-new' });
+    const monthStart = new Date('2026-08-01T00:00:00.000Z');
+    const monthEnd = new Date('2026-09-01T00:00:00.000Z');
+
+    const result = await service.getEnrollmentForDate('s1', monthStart, monthEnd);
+
+    expect(prisma.enrollment.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          studentId: 's1',
+          startDate: { lt: monthEnd },
+          OR: [{ endDate: null }, { endDate: { gte: monthStart } }],
+        },
+      }),
+    );
+    expect(result).toEqual({ id: 'enr-mid-month', sectionId: 'sec-new' });
+  });
 });

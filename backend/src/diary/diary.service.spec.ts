@@ -107,6 +107,7 @@ describe('DiaryService', () => {
     expect(enrollmentService.getEnrollmentForDate).toHaveBeenCalledWith(
       's1',
       new Date('2026-08-01T00:00:00.000Z'),
+      new Date('2026-09-01T00:00:00.000Z'),
     );
     expect(prisma.diaryEntry.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ sectionId: 'sec-1' }) }),
