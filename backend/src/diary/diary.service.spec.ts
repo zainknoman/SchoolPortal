@@ -2,25 +2,30 @@ import { Test } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { DiaryService } from './diary.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { EnrollmentService } from '../enrollment/enrollment.service';
 
 describe('DiaryService', () => {
   let service: DiaryService;
   let prisma: {
     diaryEntry: { upsert: jest.Mock; findMany: jest.Mock };
     diaryAttachment: { deleteMany: jest.Mock; createMany: jest.Mock };
-    student: { findUnique: jest.Mock };
     auditLog: { create: jest.Mock };
   };
+  let enrollmentService: { getEnrollmentForDate: jest.Mock };
 
   beforeEach(async () => {
     prisma = {
       diaryEntry: { upsert: jest.fn(), findMany: jest.fn() },
       diaryAttachment: { deleteMany: jest.fn(), createMany: jest.fn() },
-      student: { findUnique: jest.fn() },
       auditLog: { create: jest.fn() },
     };
+    enrollmentService = { getEnrollmentForDate: jest.fn() };
     const moduleRef = await Test.createTestingModule({
-      providers: [DiaryService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        DiaryService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: EnrollmentService, useValue: enrollmentService },
+      ],
     }).compile();
     service = moduleRef.get(DiaryService);
   });
@@ -93,20 +98,24 @@ describe('DiaryService', () => {
     });
   });
 
-  it("resolves a student's own section before listing that section's entries", async () => {
-    prisma.student.findUnique.mockResolvedValue({ id: 's1', sectionId: 'sec-1' });
+  it("resolves the student's enrolled section as of the requested month before listing that section's entries", async () => {
+    enrollmentService.getEnrollmentForDate.mockResolvedValue({ sectionId: 'sec-1' });
     prisma.diaryEntry.findMany.mockResolvedValue([]);
 
     await service.getForStudent('s1', '2026-08');
 
+    expect(enrollmentService.getEnrollmentForDate).toHaveBeenCalledWith(
+      's1',
+      new Date('2026-08-01T00:00:00.000Z'),
+    );
     expect(prisma.diaryEntry.findMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ sectionId: 'sec-1' }) }),
     );
   });
 
-  it('throws NotFoundException for an unknown student', async () => {
-    prisma.student.findUnique.mockResolvedValue(null);
-    await expect(service.getForStudent('missing', '2026-08')).rejects.toThrow(NotFoundException);
+  it('propagates NotFoundException when the student has no enrollment covering that month', async () => {
+    enrollmentService.getEnrollmentForDate.mockRejectedValue(new NotFoundException());
+    await expect(service.getForStudent('s1', '2026-08')).rejects.toThrow(NotFoundException);
   });
 
   it('maps entries to the summary shape the clients expect', async () => {

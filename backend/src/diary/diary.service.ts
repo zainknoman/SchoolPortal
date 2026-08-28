@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateDiaryEntryDto } from './dto/create-diary-entry.dto';
+import { EnrollmentService } from '../enrollment/enrollment.service';
 
 export interface DiaryEntrySummary {
   id: string;
@@ -13,7 +14,10 @@ export interface DiaryEntrySummary {
 
 @Injectable()
 export class DiaryService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly enrollmentService: EnrollmentService,
+  ) {}
 
   /**
    * Upsert on sectionId+subjectId+date so re-posting the same section/subject/day is idempotent
@@ -98,10 +102,8 @@ export class DiaryService {
   }
 
   async getForStudent(studentId: string, month: string): Promise<DiaryEntrySummary[]> {
-    const student = await this.prisma.student.findUnique({ where: { id: studentId } });
-    if (!student) {
-      throw new NotFoundException('Student not found');
-    }
-    return this.getForSection(student.sectionId, month);
+    const monthStart = new Date(`${month}-01T00:00:00.000Z`);
+    const enrollment = await this.enrollmentService.getEnrollmentForDate(studentId, monthStart);
+    return this.getForSection(enrollment.sectionId, month);
   }
 }
