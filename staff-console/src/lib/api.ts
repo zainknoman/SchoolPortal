@@ -70,7 +70,6 @@ export interface DiaryEntrySummary {
   date: string;
   dueDate: string | null;
   subject: string;
-  teacher: string;
   text: string;
   attachments: DiaryAttachmentSummary[];
 }

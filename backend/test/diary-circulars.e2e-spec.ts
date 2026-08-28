@@ -182,6 +182,49 @@ describe('Diary + Circulars (e2e)', () => {
     expect(res.body).toEqual([]);
   });
 
+  it('a SCHOOL_ADMIN (no Teacher profile row) can post a diary entry end-to-end, authored as themself', async () => {
+    const adminToken = await loginAs('dc-admin@seeds.edu.pk');
+    const today = new Date().toISOString().slice(0, 10);
+
+    // Uses sectionB/childB (untouched by the other diary tests in this file) so this test is fully
+    // independent of the upsert-on-sectionId+subjectId+date behavior exercised elsewhere.
+    const post = await request(app.getHttpServer())
+      .post('/api/v1/diary')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        sectionId: ids.sectionB,
+        subjectId: ids.subject,
+        date: today,
+        text: 'Admin-posted reminder: bring permission slips.',
+      })
+      .expect(201);
+
+    expect(post.body.authorId).toBe(ids.adminUserId);
+
+    // Visible via the section endpoint (also admin/teacher-only), proving the row round-trips.
+    const sectionView = await request(app.getHttpServer())
+      .get(`/api/v1/sections/${ids.sectionB}/diary?month=${today.slice(0, 7)}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    expect(sectionView.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ text: 'Admin-posted reminder: bring permission slips.' }),
+      ]),
+    );
+
+    // And visible to the parent whose child is in that section.
+    const parentBToken = await loginAs('dc-parent-b@seeds.edu.pk');
+    const parentView = await request(app.getHttpServer())
+      .get(`/api/v1/students/${ids.childB}/diary?month=${today.slice(0, 7)}`)
+      .set('Authorization', `Bearer ${parentBToken}`)
+      .expect(200);
+    expect(parentView.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ text: 'Admin-posted reminder: bring permission slips.' }),
+      ]),
+    );
+  });
+
   it('a PARENT cannot post a diary entry', async () => {
     const parentToken = await loginAs('dc-parent-a@seeds.edu.pk');
 

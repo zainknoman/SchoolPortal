@@ -51,6 +51,7 @@ model User {
   sentMessages     Message[]         @relation("MessageSender")
   circularsCreated Circular[]        @relation("CircularAuthor")
   circularRecipients CircularRecipient[]
+  diaryEntriesAuthored DiaryEntry[]
 
   @@index([role])
 }
@@ -148,7 +149,6 @@ model Teacher {
   name      String
   timetables    Timetable[]
   attendanceMarks Attendance[] @relation("AttendanceMarkedBy")
-  diaryEntries    DiaryEntry[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -243,8 +243,8 @@ model DiaryEntry {
   section     Section           @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   subjectId   String
   subject     Subject           @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  teacherId   String
-  teacher     Teacher           @relation(fields: [teacherId], references: [id])
+  authorId    String
+  author      User              @relation(fields: [authorId], references: [id])
   date        DateTime
   text        String
   dueDate     DateTime?

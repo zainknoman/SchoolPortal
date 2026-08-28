@@ -139,7 +139,6 @@ class DiaryEntry {
     required this.date,
     required this.dueDate,
     required this.subject,
-    required this.teacher,
     required this.text,
     required this.attachments,
   });
@@ -148,7 +147,6 @@ class DiaryEntry {
   final String date;
   final String? dueDate;
   final String subject;
-  final String teacher;
   final String text;
   final List<DiaryAttachment> attachments;
 
@@ -157,7 +155,6 @@ class DiaryEntry {
     date: json['date'] as String,
     dueDate: json['dueDate'] as String?,
     subject: json['subject'] as String,
-    teacher: json['teacher'] as String,
     text: json['text'] as String,
     attachments: (json['attachments'] as List<dynamic>)
         .map((e) => DiaryAttachment.fromJson(e as Map<String, dynamic>))

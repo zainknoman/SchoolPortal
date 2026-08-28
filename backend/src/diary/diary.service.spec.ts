@@ -6,7 +6,6 @@ import { PrismaService } from '../prisma/prisma.service';
 describe('DiaryService', () => {
   let service: DiaryService;
   let prisma: {
-    teacher: { findUnique: jest.Mock };
     diaryEntry: { upsert: jest.Mock; findMany: jest.Mock };
     diaryAttachment: { deleteMany: jest.Mock; createMany: jest.Mock };
     student: { findUnique: jest.Mock };
@@ -15,7 +14,6 @@ describe('DiaryService', () => {
 
   beforeEach(async () => {
     prisma = {
-      teacher: { findUnique: jest.fn() },
       diaryEntry: { upsert: jest.fn(), findMany: jest.fn() },
       diaryAttachment: { deleteMany: jest.fn(), createMany: jest.fn() },
       student: { findUnique: jest.fn() },
@@ -27,13 +25,12 @@ describe('DiaryService', () => {
     service = moduleRef.get(DiaryService);
   });
 
-  it('creates a diary entry (upsert on sectionId+subjectId+date) and writes an audit log entry', async () => {
-    prisma.teacher.findUnique.mockResolvedValue({ id: 'teacher-1' });
+  it('creates a diary entry (upsert on sectionId+subjectId+date), using the caller as authorId, and writes an audit log entry', async () => {
     prisma.diaryEntry.upsert.mockResolvedValue({ id: 'entry-1' });
 
     await service.createEntry(
       { sectionId: 'sec-1', subjectId: 'sub-1', date: '2026-08-27', text: 'Read chapter 3.' },
-      'teacher-user-1',
+      'user-1',
     );
 
     expect(prisma.diaryEntry.upsert).toHaveBeenCalledWith(
@@ -45,7 +42,8 @@ describe('DiaryService', () => {
             date: new Date('2026-08-27'),
           },
         },
-        create: expect.objectContaining({ text: 'Read chapter 3.', teacherId: 'teacher-1' }),
+        create: expect.objectContaining({ text: 'Read chapter 3.', authorId: 'user-1' }),
+        update: expect.objectContaining({ text: 'Read chapter 3.', authorId: 'user-1' }),
       }),
     );
     expect(prisma.auditLog.create).toHaveBeenCalledWith(
@@ -55,8 +53,22 @@ describe('DiaryService', () => {
     );
   });
 
+  it('creates a diary entry authored by a SCHOOL_ADMIN/SUPER_ADMIN caller directly — no Teacher profile lookup', async () => {
+    prisma.diaryEntry.upsert.mockResolvedValue({ id: 'entry-2' });
+
+    await service.createEntry(
+      { sectionId: 'sec-1', subjectId: 'sub-1', date: '2026-08-27', text: 'Admin-posted note.' },
+      'admin-user-1',
+    );
+
+    expect(prisma.diaryEntry.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ authorId: 'admin-user-1' }),
+      }),
+    );
+  });
+
   it('attaches the given files, replacing any previous attachments on the same entry', async () => {
-    prisma.teacher.findUnique.mockResolvedValue({ id: 'teacher-1' });
     prisma.diaryEntry.upsert.mockResolvedValue({ id: 'entry-1' });
 
     await service.createEntry(
@@ -67,7 +79,7 @@ describe('DiaryService', () => {
         text: 'Read chapter 3.',
         fileIds: ['file-1', 'file-2'],
       },
-      'teacher-user-1',
+      'user-1',
     );
 
     expect(prisma.diaryAttachment.deleteMany).toHaveBeenCalledWith({
@@ -79,18 +91,6 @@ describe('DiaryService', () => {
         { diaryEntryId: 'entry-1', fileId: 'file-2' },
       ],
     });
-  });
-
-  it('throws NotFoundException if the posting user has no Teacher profile', async () => {
-    prisma.teacher.findUnique.mockResolvedValue(null);
-
-    await expect(
-      service.createEntry(
-        { sectionId: 'sec-1', subjectId: 'sub-1', date: '2026-08-27', text: 'x' },
-        'not-a-teacher',
-      ),
-    ).rejects.toThrow(NotFoundException);
-    expect(prisma.diaryEntry.upsert).not.toHaveBeenCalled();
   });
 
   it("resolves a student's own section before listing that section's entries", async () => {
@@ -117,7 +117,6 @@ describe('DiaryService', () => {
         dueDate: new Date('2026-08-29'),
         text: 'Read chapter 3.',
         subject: { name: 'Urdu' },
-        teacher: { name: 'Ms. Sample Teacher' },
         attachments: [
           { file: { id: 'file-1', originalName: 'sheet.pdf', mimeType: 'application/pdf' } },
         ],
@@ -132,7 +131,6 @@ describe('DiaryService', () => {
         date: '2026-08-27',
         dueDate: '2026-08-29',
         subject: 'Urdu',
-        teacher: 'Ms. Sample Teacher',
         text: 'Read chapter 3.',
         attachments: [{ id: 'file-1', originalName: 'sheet.pdf', mimeType: 'application/pdf' }],
       },

@@ -7,7 +7,6 @@ export interface DiaryEntrySummary {
   date: string;
   dueDate: string | null;
   subject: string;
-  teacher: string;
   text: string;
   attachments: { id: string; originalName: string; mimeType: string }[];
 }
@@ -20,13 +19,13 @@ export class DiaryService {
    * Upsert on sectionId+subjectId+date so re-posting the same section/subject/day is idempotent
    * (edits an existing entry) instead of creating duplicates — mirrors Attendance's upsert-on-
    * studentId+date pattern.
+   *
+   * authorId is the caller's own User id (req.user.id) — no profile-table lookup needed, since
+   * every role permitted to post (TEACHER, SCHOOL_ADMIN, SUPER_ADMIN) has a User row, and the
+   * controller's @Roles guard has already confirmed the caller is one of those roles. Mirrors how
+   * CircularsService.publish takes authorId directly.
    */
   async createEntry(dto: CreateDiaryEntryDto, creatingUserId: string) {
-    const teacher = await this.prisma.teacher.findUnique({ where: { userId: creatingUserId } });
-    if (!teacher) {
-      throw new NotFoundException('Only a teacher account can post a diary entry');
-    }
-
     const date = new Date(dto.date);
     const entry = await this.prisma.diaryEntry.upsert({
       where: {
@@ -35,13 +34,13 @@ export class DiaryService {
       create: {
         sectionId: dto.sectionId,
         subjectId: dto.subjectId,
-        teacherId: teacher.id,
+        authorId: creatingUserId,
         date,
         text: dto.text,
         dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
       },
       update: {
-        teacherId: teacher.id,
+        authorId: creatingUserId,
         text: dto.text,
         dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
       },
@@ -81,7 +80,7 @@ export class DiaryService {
     const entries = await this.prisma.diaryEntry.findMany({
       where: { sectionId, date: { gte: start, lt: end } },
       orderBy: { date: 'desc' },
-      include: { subject: true, teacher: true, attachments: { include: { file: true } } },
+      include: { subject: true, attachments: { include: { file: true } } },
     });
 
     return entries.map((e) => ({
@@ -89,7 +88,6 @@ export class DiaryService {
       date: e.date.toISOString().slice(0, 10),
       dueDate: e.dueDate ? e.dueDate.toISOString().slice(0, 10) : null,
       subject: e.subject.name,
-      teacher: e.teacher.name,
       text: e.text,
       attachments: e.attachments.map((a) => ({
         id: a.file.id,

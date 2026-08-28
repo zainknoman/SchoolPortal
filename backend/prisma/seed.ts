@@ -143,7 +143,7 @@ async function main() {
     data: {
       sectionId: section3A.id,
       subjectId: subjects[0].id,
-      teacherId: teacher.id,
+      authorId: teacherUser.id,
       date: today,
       text: 'کتاب صفحہ 12 مکمل کریں۔ کل اپنی ورک بک لائیں۔',
       dueDate: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000),

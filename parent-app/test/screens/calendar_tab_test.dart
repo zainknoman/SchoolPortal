@@ -109,7 +109,6 @@ void main() {
                 'date': '2026-08-27',
                 'dueDate': '2026-08-29',
                 'subject': 'Urdu',
-                'teacher': 'Ms. Sample',
                 'text': 'کتاب لائیں',
                 'attachments': [],
               },
