@@ -50,7 +50,7 @@ void main() {
     );
   }
 
-  testWidgets('Timetable tab shows the structured entry', (tester) async {
+  testWidgets('Timetable tab groups periods by day into 7 day-rows', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(body: CalendarTab(studentId: 's1', accessToken: 'tok', api: makeClient())),
@@ -58,9 +58,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('English'), findsOneWidget);
+    // makeClient()'s one timetable entry has dayOfWeek: 1 (Mon).
+    expect(find.byKey(const Key('timetableDay1')), findsOneWidget);
+    expect(find.textContaining('English'), findsOneWidget);
     expect(find.textContaining('Ms. Sample'), findsOneWidget);
     expect(find.textContaining('08:00'), findsOneWidget);
+
+    // Every other day-of-week card renders with an empty state, not omitted.
+    expect(find.text('No periods'), findsNWidgets(6));
   });
 
   testWidgets('Attendance tab shows the percentage and today\'s status', (tester) async {

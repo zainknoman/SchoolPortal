@@ -73,25 +73,54 @@ class _TimetableTabState extends State<_TimetableTab> {
     if (_entries == null) return const Center(child: CircularProgressIndicator());
     if (_entries!.isEmpty) return const Center(child: Text('No timetable published yet.'));
 
-    return ListView.separated(
+    final byDay = <int, List<TimetableEntry>>{for (var d = 0; d < 7; d++) d: []};
+    for (final e in _entries!) {
+      byDay[e.dayOfWeek]!.add(e);
+    }
+    for (final entries in byDay.values) {
+      entries.sort((a, b) => a.period.compareTo(b.period));
+    }
+
+    return ListView(
       padding: const EdgeInsets.all(16),
-      itemCount: _entries!.length,
-      separatorBuilder: (_, _) => const Divider(height: 1),
-      itemBuilder: (context, i) {
-        final e = _entries![i];
-        return ListTile(
-          leading: CircleAvatar(child: Text('P${e.period}')),
-          title: Text(e.subject),
-          subtitle: Text(
-            [
-              _dayNames[e.dayOfWeek],
-              '${e.startTime}–${e.endTime}',
-              if (e.teacher != null) e.teacher!,
-              if (e.room != null) 'Room ${e.room}',
-            ].join(' · '),
+      children: [
+        for (var day = 0; day < 7; day++)
+          Card(
+            key: Key('timetableDay$day'),
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(_dayNames[day], style: Theme.of(context).textTheme.titleSmall),
+                  const SizedBox(height: 8),
+                  if (byDay[day]!.isEmpty)
+                    Text('No periods', style: Theme.of(context).textTheme.bodySmall)
+                  else
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final entry in byDay[day]!)
+                          Chip(
+                            label: Text(
+                              [
+                                'P${entry.period}',
+                                entry.subject,
+                                '${entry.startTime}–${entry.endTime}',
+                                if (entry.teacher != null) entry.teacher!,
+                                if (entry.room != null) 'Room ${entry.room}',
+                              ].join(' · '),
+                            ),
+                          ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
           ),
-        );
-      },
+      ],
     );
   }
 }
