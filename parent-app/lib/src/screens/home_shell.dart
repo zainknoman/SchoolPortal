@@ -5,6 +5,7 @@ import '../api/models.dart';
 import '../auth/auth_state.dart';
 import 'calendar_tab.dart';
 import 'circulars_tab.dart';
+import 'home_tab.dart';
 
 /// Authenticated shell: multi-child switcher up top, bottom nav below (Home / Calendar /
 /// Notifications / Messages / Fees / More — per the MVP plan). Every tab is a placeholder;
@@ -142,6 +143,23 @@ class _HomeShellState extends State<HomeShell> {
     final child = _activeChild;
     if (child == null) {
       return const Center(child: Text('No children are linked to this account yet.'));
+    }
+
+    if (_tabIndex == 0) {
+      final auth = context.read<AuthState>();
+      final api = context.read<ApiClient>();
+      return HomeTab(
+        // Keyed on the child id so switching the active child re-fetches this tab's attendance
+        // stat instead of silently keeping the previous child's data on screen.
+        key: ValueKey(child.id),
+        studentId: child.id,
+        childName: child.name,
+        childClass: '${child.schoolClass} ${child.section}',
+        accessToken: auth.accessToken!,
+        api: api,
+        onOpenTimetable: () => setState(() => _tabIndex = 1),
+        onSeeAllAnnouncements: () => setState(() => _tabIndex = 2),
+      );
     }
 
     if (_tabIndex == 1) {
