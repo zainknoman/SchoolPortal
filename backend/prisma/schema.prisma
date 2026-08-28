@@ -372,14 +372,14 @@ model FeeStructure {
 model FeeVoucher {
   id                String   @id @default(uuid())
   studentId         String
-  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student           Student  @relation(fields: [studentId], references: [id], onDelete: Restrict)
   academicSessionId String
   academicSession   AcademicSession @relation(fields: [academicSessionId], references: [id])
-  month             String   // "2026-09"
+  month             String
   issueDate         DateTime
   dueDate           DateTime
-  items             FeeItem[]
-  payments          FeePayment[]
+  items       FeeItem[]
+  allocations FeePaymentAllocation[]
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -395,14 +395,27 @@ model FeeItem {
 }
 
 model FeePayment {
+  id          String     @id @default(uuid())
+  amount      Int        // paisa
+  method      String     // "jazzcash" | "easypaisa" | "manual"
+  status      String     // "pending" | "completed" | "failed"
+  reference   String?    @unique // gateway transaction id — lets a retried webhook be a no-op instead of a duplicate payment
+  allocations FeePaymentAllocation[]
+  receipt     Receipt?
+  createdAt   DateTime   @default(now())
+}
+
+model FeePaymentAllocation {
   id           String     @id @default(uuid())
+  feePaymentId String
+  feePayment   FeePayment @relation(fields: [feePaymentId], references: [id], onDelete: Restrict)
   feeVoucherId String
-  feeVoucher   FeeVoucher @relation(fields: [feeVoucherId], references: [id], onDelete: Cascade)
-  amount       Int
-  method       String     // "jazzcash" | "easypaisa" | "manual"
-  status       String     // "pending" | "completed" | "failed"
-  receipt      Receipt?
+  feeVoucher   FeeVoucher @relation(fields: [feeVoucherId], references: [id], onDelete: Restrict)
+  amount       Int        // paisa — this payment's contribution to this voucher; sum per voucher = amount paid toward it
   createdAt    DateTime   @default(now())
+
+  @@unique([feePaymentId, feeVoucherId])
+  @@index([feeVoucherId])
 }
 
 model Receipt {
