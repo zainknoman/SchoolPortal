@@ -45,8 +45,19 @@ async function main() {
   });
 
   const student = await prisma.student.create({
-    data: { campusId: gulistan.id, sectionId: section3A.id, grNumber: 'GR-1001', name: 'Eshaal Sample' },
+    data: { grNumber: 'GR-1001', name: 'Eshaal Sample' },
   });
+  const studentEnrollment = await prisma.enrollment.create({
+    data: {
+      studentId: student.id,
+      campusId: gulistan.id,
+      sectionId: section3A.id,
+      academicSessionId: session.id,
+      startDate: session.startDate,
+      status: 'ACTIVE',
+    },
+  });
+  void studentEnrollment;
 
   // A second, unused campus row (Gulshan) demonstrates the schema handles multi-campus without a
   // second student attached — proves campus is data, not an assumption baked into one row.

@@ -41,6 +41,9 @@ describe('Diary + Circulars (e2e)', () => {
     await prisma.user
       .deleteMany({ where: { identifier: { startsWith: 'dc-' } } })
       .catch(() => undefined);
+    await prisma.student
+      .deleteMany({ where: { grNumber: { startsWith: 'DC-' } } })
+      .catch(() => undefined);
     const stale = await prisma.school.findMany({ where: { name: 'DC E2E School' } });
     for (const s of stale) {
       await prisma.school.delete({ where: { id: s.id } }).catch(() => undefined);
@@ -92,10 +95,30 @@ describe('Diary + Circulars (e2e)', () => {
     });
 
     const childA = await prisma.student.create({
-      data: { campusId: campus.id, sectionId: sectionA.id, grNumber: 'DC-A1', name: 'DC Child A' },
+      data: { grNumber: 'DC-A1', name: 'DC Child A' },
     });
     const childB = await prisma.student.create({
-      data: { campusId: campus.id, sectionId: sectionB.id, grNumber: 'DC-B1', name: 'DC Child B' },
+      data: { grNumber: 'DC-B1', name: 'DC Child B' },
+    });
+    await prisma.enrollment.create({
+      data: {
+        studentId: childA.id,
+        campusId: campus.id,
+        sectionId: sectionA.id,
+        academicSessionId: session.id,
+        startDate: session.startDate,
+        status: 'ACTIVE',
+      },
+    });
+    await prisma.enrollment.create({
+      data: {
+        studentId: childB.id,
+        campusId: campus.id,
+        sectionId: sectionB.id,
+        academicSessionId: session.id,
+        startDate: session.startDate,
+        status: 'ACTIVE',
+      },
     });
     await prisma.studentParent.create({
       data: { studentId: childA.id, parentProfileId: parentAProfile.id },
@@ -108,6 +131,9 @@ describe('Diary + Circulars (e2e)', () => {
   });
 
   afterAll(async () => {
+    await prisma.student
+      .deleteMany({ where: { grNumber: { in: ['DC-A1', 'DC-B1'] } } })
+      .catch(() => undefined);
     await prisma.school.delete({ where: { id: ids.school } }).catch(() => undefined);
     await prisma.circular.deleteMany({ where: { authorId: ids.adminUserId } }).catch(() => undefined);
     await prisma.user

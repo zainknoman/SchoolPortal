@@ -33,6 +33,9 @@ describe('Timetable + Attendance (e2e)', () => {
     await prisma.user
       .deleteMany({ where: { identifier: { startsWith: 'tta-' } } })
       .catch(() => undefined);
+    await prisma.student
+      .deleteMany({ where: { grNumber: { startsWith: 'TTA-' } } })
+      .catch(() => undefined);
     const stale = await prisma.school.findMany({
       where: { name: 'TTA E2E School' },
     });
@@ -109,19 +112,29 @@ describe('Timetable + Attendance (e2e)', () => {
     });
 
     const childA = await prisma.student.create({
-      data: {
-        campusId: campus.id,
-        sectionId: section.id,
-        grNumber: 'TTA-A1',
-        name: 'TTA Child A',
-      },
+      data: { grNumber: 'TTA-A1', name: 'TTA Child A' },
     });
     const childB = await prisma.student.create({
+      data: { grNumber: 'TTA-B1', name: 'TTA Child B' },
+    });
+    await prisma.enrollment.create({
       data: {
+        studentId: childA.id,
         campusId: campus.id,
         sectionId: section.id,
-        grNumber: 'TTA-B1',
-        name: 'TTA Child B',
+        academicSessionId: session.id,
+        startDate: session.startDate,
+        status: 'ACTIVE',
+      },
+    });
+    await prisma.enrollment.create({
+      data: {
+        studentId: childB.id,
+        campusId: campus.id,
+        sectionId: section.id,
+        academicSessionId: session.id,
+        startDate: session.startDate,
+        status: 'ACTIVE',
       },
     });
     await prisma.studentParent.create({
@@ -152,6 +165,9 @@ describe('Timetable + Attendance (e2e)', () => {
   });
 
   afterAll(async () => {
+    await prisma.student
+      .deleteMany({ where: { grNumber: { in: ['TTA-A1', 'TTA-B1'] } } })
+      .catch(() => undefined);
     await prisma.school
       .delete({ where: { id: ids.school } })
       .catch(() => undefined);

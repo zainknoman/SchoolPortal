@@ -96,19 +96,31 @@ describe('Me / children (e2e)', () => {
 
     const [childA, childB] = await Promise.all([
       prisma.student.create({
-        data: {
-          campusId: campus.id,
-          sectionId: section.id,
-          grNumber: 'ME2E-A1',
-          name: 'Child A',
-        },
+        data: { grNumber: 'ME2E-A1', name: 'Child A' },
       }),
       prisma.student.create({
+        data: { grNumber: 'ME2E-B1', name: 'Child B' },
+      }),
+    ]);
+    await Promise.all([
+      prisma.enrollment.create({
         data: {
+          studentId: childA.id,
           campusId: campus.id,
           sectionId: section.id,
-          grNumber: 'ME2E-B1',
-          name: 'Child B',
+          academicSessionId: session.id,
+          startDate: session.startDate,
+          status: 'ACTIVE',
+        },
+      }),
+      prisma.enrollment.create({
+        data: {
+          studentId: childB.id,
+          campusId: campus.id,
+          sectionId: section.id,
+          academicSessionId: session.id,
+          startDate: session.startDate,
+          status: 'ACTIVE',
         },
       }),
     ]);
@@ -124,7 +136,12 @@ describe('Me / children (e2e)', () => {
   });
 
   afterAll(async () => {
-    // Cascade deletes handle children/students/sections/classes/sessions/campuses via onDelete: Cascade.
+    // Enrollment.campus/section/academicSession are onDelete: Restrict (deliberately — see Task 9's
+    // philosophy) so students must be deleted first; that cascades their Enrollment rows, which then
+    // unblocks the School cascade below.
+    await prisma.student
+      .deleteMany({ where: { grNumber: { in: ['ME2E-A1', 'ME2E-B1'] } } })
+      .catch(() => undefined);
     await prisma.school
       .delete({ where: { id: ids.school } })
       .catch(() => undefined);

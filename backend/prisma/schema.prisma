@@ -27,6 +27,12 @@ enum AttendanceStatus {
   HOLIDAY
 }
 
+enum EnrollmentStatus {
+  ACTIVE
+  TRANSFERRED
+  COMPLETED
+}
+
 // --- Identity -----------------------------------------------------------
 
 model User {
@@ -83,8 +89,8 @@ model Campus {
   schoolId  String
   school    School   @relation(fields: [schoolId], references: [id], onDelete: Cascade)
   name      String
-  classes   Class[]
-  students  Student[]
+  classes     Class[]
+  enrollments Enrollment[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -97,8 +103,9 @@ model AcademicSession {
   startDate  DateTime
   endDate    DateTime
   isActive   Boolean  @default(false)
-  classes    Class[]
-  feeVouchers FeeVoucher[]
+  classes      Class[]
+  feeVouchers  FeeVoucher[]
+  enrollments  Enrollment[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
@@ -123,8 +130,8 @@ model Section {
   classId   String
   class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
   name      String   // e.g. "3A"
-  students  Student[]
-  timetables Timetable[]
+  enrollments  Enrollment[]
+  timetables   Timetable[]
   diaryEntries DiaryEntry[]
   circulars    Circular[]
   createdAt DateTime @default(now())
@@ -157,21 +164,36 @@ model Teacher {
 
 model Student {
   id         String   @id @default(uuid())
-  campusId   String
-  campus     Campus   @relation(fields: [campusId], references: [id], onDelete: Cascade)
-  sectionId  String
-  section    Section  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   grNumber   String   @unique
   name       String
   parents         StudentParent[]
+  enrollments     Enrollment[]
   attendance      Attendance[]
   feeVouchers     FeeVoucher[]
   leaveRequests   LeaveRequest[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
 
-  @@index([campusId])
+model Enrollment {
+  id                String            @id @default(uuid())
+  studentId         String
+  student           Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  campusId          String
+  campus            Campus            @relation(fields: [campusId], references: [id], onDelete: Restrict)
+  sectionId         String
+  section           Section           @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  academicSessionId String
+  academicSession   AcademicSession   @relation(fields: [academicSessionId], references: [id], onDelete: Restrict)
+  startDate         DateTime
+  endDate           DateTime?
+  status            EnrollmentStatus  @default(ACTIVE)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([studentId])
   @@index([sectionId])
+  @@index([campusId])
 }
 
 model ParentProfile {
