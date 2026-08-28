@@ -263,6 +263,27 @@ git commit -m "feat(schema): introduce Enrollment, remove Student.campusId/secti
 
 (Backend code that still references `student.sectionId`/`student.campusId` — `DiaryService`, `TimetableService`, `SectionsService`, `CircularsService`, `MeService` — will now fail `tsc`. That's expected; Tasks 2-7 fix each one. Don't run the full build between this commit and the end of Task 7.)
 
+**Addendum (found during Task 1 implementation, not anticipated when this plan was written):** `backend/src/files/files-access.service.ts` also queries the removed `Section.students` relation (`assertCanAccessFile`'s diary-attachment branch: `section: { students: { some: { parents: { some: { parentProfile: { userId } } } } } } }`) — a sixth consumer of the old direct relation, missed when this plan enumerated Diary/Timetable/Sections/Circulars/Me as "the five consumer services." Confirmed via `tsc --noEmit` that no other files were missed. Fixed as part of Task 1 (folded in as a fix round rather than a new task, since it's a required-for-compilation, single-file, single-query change with no new design decision — same "section → currently-enrolled students" direct-`prisma.enrollment` pattern Tasks 5 and 6 use):
+
+```typescript
+// backend/src/files/files-access.service.ts — assertCanAccessFile's diary-attachment branch
+const viaDiary = await this.prisma.diaryAttachment.findFirst({
+  where: {
+    fileId,
+    diaryEntry: {
+      section: {
+        enrollments: {
+          some: {
+            status: 'ACTIVE',
+            student: { parents: { some: { parentProfile: { userId: user.id } } } },
+          },
+        },
+      },
+    },
+  },
+});
+```
+
 ---
 
 ### Task 2: `EnrollmentService`
