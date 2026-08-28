@@ -133,10 +133,13 @@ Repo: https://github.com/zainknoman/SchoolPortal
   a real need. `MeService.getChildrenForUser` assumes every student has exactly one ACTIVE
   enrollment at all times and will throw an unhandled error otherwise — currently unreachable (no
   code path creates a student with zero active enrollments yet), but will need revisiting once a
-  student-transfer workflow is built. The new `cascade-delete-restrictions.e2e-spec.ts` doesn't yet
-  follow this codebase's established self-healing pre-flight cleanup pattern (see
-  `timetable-attendance.e2e-spec.ts`), so a crashed run could leave stale fixtures — worth
-  bringing in line with the other e2e specs. A student who transfers section mid-month currently gets
+  student-transfer workflow is built. `timetable-attendance.e2e-spec.ts`'s own self-healing
+  pre-flight block (the pattern the other e2e specs now follow) clears stale students without first
+  clearing their `Attendance` rows — since `Attendance.student` is now `Restrict`, that delete can
+  silently fail (swallowed by `.catch`), leaving a crashed run's fixtures un-recoverable on the next
+  attempt; worth updating it to match `cascade-delete-restrictions.e2e-spec.ts`'s more thorough
+  pre-flight (clear `Attendance`/`LeaveRequest`/`FeeVoucher` per stale student before the student
+  itself). A student who transfers section mid-month currently gets
   `getEnrollmentForDate`'s newer enrollment for that whole straddling month in Diary (correct before
   and after the transfer month, wrong only for the transfer month itself) — same footing as the
   `MeService` gap above: unreachable until a transfer workflow exists, revisit then.
