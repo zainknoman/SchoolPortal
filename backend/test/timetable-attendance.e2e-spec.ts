@@ -28,11 +28,19 @@ describe('Timetable + Attendance (e2e)', () => {
     prisma = moduleFixture.get(PrismaService);
     await app.init();
 
-    // Self-healing: if a prior run's afterAll didn't complete (crash, forced-quit), don't fail on
-    // stale fixtures — clear them before creating fresh ones.
+    // Self-healing: if a prior run's afterAll didn't complete (crash, forced-quit, or the
+    // Attendance.student Restrict FK silently blocking student cleanup — see afterAll below),
+    // don't fail on stale fixtures — clear them before creating fresh ones. Attendance must be
+    // cleared before the student (Attendance.student is Restrict, not Cascade).
     await prisma.user
       .deleteMany({ where: { identifier: { startsWith: 'tta-' } } })
       .catch(() => undefined);
+    const staleStudents = await prisma.student.findMany({
+      where: { grNumber: { startsWith: 'TTA-' } },
+    });
+    for (const s of staleStudents) {
+      await prisma.attendance.deleteMany({ where: { studentId: s.id } }).catch(() => undefined);
+    }
     await prisma.student
       .deleteMany({ where: { grNumber: { startsWith: 'TTA-' } } })
       .catch(() => undefined);
@@ -165,6 +173,12 @@ describe('Timetable + Attendance (e2e)', () => {
   });
 
   afterAll(async () => {
+    // Attendance.student is Restrict, so the "mark attendance" test above leaves a row that must
+    // be cleared before the student can be deleted — otherwise this whole cleanup silently no-ops
+    // (every call below is wrapped in .catch), and the next run's beforeAll self-heal has to do it.
+    await prisma.attendance
+      .deleteMany({ where: { studentId: { in: [ids.childA, ids.childB] } } })
+      .catch(() => undefined);
     await prisma.student
       .deleteMany({ where: { grNumber: { in: ['TTA-A1', 'TTA-B1'] } } })
       .catch(() => undefined);
