@@ -23,7 +23,12 @@ export class FilesAccessService {
         fileId,
         diaryEntry: {
           section: {
-            students: { some: { parents: { some: { parentProfile: { userId: user.id } } } } },
+            enrollments: {
+              some: {
+                status: 'ACTIVE',
+                student: { parents: { some: { parentProfile: { userId: user.id } } } },
+              },
+            },
           },
         },
       },
