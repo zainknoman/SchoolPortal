@@ -1,21 +1,245 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import AppShell from '../components/AppShell.vue';
+import Icon from '../components/AppIcon.vue';
+import TrendsSparkline from '../components/TrendsSparkline.vue';
+import { getMockDashboardSummary } from '../lib/mockDashboard';
+import { formatPkrShort } from '../lib/format';
+
+const summary = getMockDashboardSummary();
+
+const trendLabels = computed(() => summary.weeklyTrend.map((d) => d.day));
+const maxFees = computed(() => Math.max(...summary.weeklyTrend.map((d) => d.feesCollectedPkr)));
+const trendSeries = computed(() => [
+  {
+    label: 'Attendance %',
+    color: 'var(--color-primary)',
+    values: summary.weeklyTrend.map((d) => d.attendancePercent),
+  },
+  {
+    label: 'Fees Collected (PKR)',
+    color: 'var(--color-muted)',
+    dashed: true,
+    values: summary.weeklyTrend.map((d) => (d.feesCollectedPkr / maxFees.value) * 100),
+  },
+]);
 </script>
 
 <template>
   <AppShell>
-    <h1>Admin / Accounts home</h1>
-    <p class="lede">
-      Student/parent/teacher management, timetable authoring, circulars, and fees land here in
-      the next sprint. This screen confirms login + role-gated routing are wired end to end.
-    </p>
+    <div class="dashboard">
+      <div class="dashboard-header">
+        <h1>Dashboard</h1>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Students</div>
+          <div class="stat-value">{{ summary.studentsTotal.toLocaleString() }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Present</div>
+          <div class="stat-value">{{ summary.presentTodayPercent }}%</div>
+          <div class="stat-hint">Today</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Fees Collected</div>
+          <div class="stat-value">
+            {{ formatPkrShort(summary.feesCollectedPkr) }} <span class="stat-unit">PKR</span>
+          </div>
+          <div class="stat-hint">Month to date</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Outstanding</div>
+          <div class="stat-value">
+            {{ formatPkrShort(summary.feesOutstandingPkr) }} <span class="stat-unit">PKR</span>
+          </div>
+          <div class="stat-hint">Total</div>
+        </div>
+      </div>
+
+      <div class="secondary-row">
+        <div class="secondary-card">
+          <span class="secondary-icon warning"><Icon name="warning" :size="18" /></span>
+          <span class="secondary-label">At-risk students</span>
+          <span class="secondary-value">{{ summary.atRiskStudents }}</span>
+        </div>
+        <div class="secondary-card">
+          <span class="secondary-icon"><Icon name="user-circle" :size="18" /></span>
+          <span class="secondary-label">Absent today</span>
+          <span class="secondary-value">{{ summary.absentToday }}</span>
+        </div>
+        <div class="secondary-card">
+          <span class="secondary-icon"><Icon name="users" :size="18" /></span>
+          <span class="secondary-label">Teachers absent</span>
+          <span class="secondary-value">{{ summary.teachersAbsent }}</span>
+        </div>
+      </div>
+
+      <div class="lower-grid">
+        <div class="trends-panel">
+          <h2>Trends <span class="muted">(This Week)</span></h2>
+          <TrendsSparkline :labels="trendLabels" :series="trendSeries" />
+        </div>
+
+        <div class="alerts-panel">
+          <h2>Recent Alerts</h2>
+          <ul class="alert-list">
+            <li v-for="(alert, i) in summary.recentAlerts" :key="i">
+              <span>{{ alert.message }}</span>
+              <span class="alert-time">{{ alert.timeAgo }}</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
   </AppShell>
 </template>
 
 <style scoped>
-.lede {
-  margin-top: var(--space-2);
-  max-width: 60ch;
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 1200px;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+}
+@media (max-width: 1024px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 640px) {
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stat-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+}
+.stat-label {
   color: var(--color-muted);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: var(--space-1);
+}
+.stat-value {
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+.stat-unit {
+  font-size: var(--font-size-lg);
+  font-weight: 400;
+  color: var(--color-muted);
+}
+.stat-hint {
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+  margin-top: var(--space-1);
+}
+
+.secondary-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+}
+@media (max-width: 768px) {
+  .secondary-row {
+    grid-template-columns: 1fr;
+  }
+}
+.secondary-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+}
+.secondary-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-muted-bg);
+  color: var(--color-muted);
+}
+.secondary-icon.warning {
+  background: color-mix(in srgb, var(--color-destructive) 12%, white);
+  color: var(--color-destructive);
+}
+.secondary-label {
+  flex: 1;
+  font-weight: 500;
+}
+.secondary-value {
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+}
+
+.lower-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-4);
+}
+@media (max-width: 1024px) {
+  .lower-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.trends-panel,
+.alerts-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+}
+.trends-panel h2,
+.alerts-panel h2 {
+  font-size: var(--font-size-base);
+  margin-bottom: var(--space-4);
+}
+.muted {
+  color: var(--color-muted);
+  font-weight: 400;
+  font-size: var(--font-size-sm);
+}
+
+.alert-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.alert-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+.alert-list li:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.alert-time {
+  color: var(--color-muted);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
 }
 </style>
