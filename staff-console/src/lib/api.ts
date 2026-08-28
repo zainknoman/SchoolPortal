@@ -54,6 +54,39 @@ export interface StudentSummary {
 
 export type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'LEAVE' | 'HOLIDAY';
 
+export interface SubjectSummary {
+  id: string;
+  name: string;
+}
+
+export interface DiaryAttachmentSummary {
+  id: string;
+  originalName: string;
+  mimeType: string;
+}
+
+export interface DiaryEntrySummary {
+  id: string;
+  date: string;
+  dueDate: string | null;
+  subject: string;
+  teacher: string;
+  text: string;
+  attachments: DiaryAttachmentSummary[];
+}
+
+export interface CircularSummary {
+  id: string;
+  title: string;
+  description: string;
+  scope: 'school' | 'section';
+  priority: string;
+  publishedAt: string;
+  expiresAt: string | null;
+  attachments: DiaryAttachmentSummary[];
+  readAt: string | null;
+}
+
 function authHeaders(accessToken: string) {
   return { Authorization: `Bearer ${accessToken}` };
 }
@@ -97,6 +130,54 @@ export const api = {
     payload: { studentId: string; date: string; status: AttendanceStatus },
   ): Promise<void> {
     const res = await fetch(`${API_BASE_URL}/api/v1/attendance`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async listSubjects(accessToken: string): Promise<SubjectSummary[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/subjects`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async uploadFile(accessToken: string, file: File): Promise<{ id: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${API_BASE_URL}/api/v1/files`, {
+      method: 'POST',
+      headers: authHeaders(accessToken),
+      body: formData,
+    });
+    return asJson(res);
+  },
+
+  async listSectionDiary(
+    accessToken: string,
+    sectionId: string,
+    month: string,
+  ): Promise<DiaryEntrySummary[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/sections/${sectionId}/diary?month=${month}`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
+
+  async createDiaryEntry(
+    accessToken: string,
+    payload: {
+      sectionId: string;
+      subjectId: string;
+      date: string;
+      text: string;
+      dueDate?: string;
+      fileIds?: string[];
+    },
+  ): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/diary`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
       body: JSON.stringify(payload),

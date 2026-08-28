@@ -1,0 +1,203 @@
+<script setup lang="ts">
+import { ref } from 'vue';
+import { useAuthStore } from '../stores/auth';
+import { api, type SectionSummary, type SubjectSummary, type DiaryEntrySummary } from '../lib/api';
+import { detectDirection } from '../lib/textDirection';
+import DirectionalText from '../components/DirectionalText.vue';
+
+const auth = useAuthStore();
+const today = new Date().toISOString().slice(0, 10);
+const month = today.slice(0, 7);
+
+const sections = ref<SectionSummary[]>([]);
+const subjects = ref<SubjectSummary[]>([]);
+const selectedSectionId = ref('');
+const selectedSubjectId = ref('');
+const dueDate = ref('');
+const text = ref('');
+const files = ref<File[]>([]);
+const entries = ref<DiaryEntrySummary[]>([]);
+const isSaving = ref(false);
+const message = ref<string | null>(null);
+const errorMessage = ref<string | null>(null);
+
+async function loadLookups() {
+  if (!auth.accessToken) return;
+  try {
+    [sections.value, subjects.value] = await Promise.all([
+      api.listSections(auth.accessToken),
+      api.listSubjects(auth.accessToken),
+    ]);
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Could not load sections/subjects.';
+  }
+}
+loadLookups();
+
+async function loadEntries() {
+  if (!auth.accessToken || !selectedSectionId.value) {
+    entries.value = [];
+    return;
+  }
+  try {
+    entries.value = await api.listSectionDiary(auth.accessToken, selectedSectionId.value, month);
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Could not load diary entries.';
+  }
+}
+
+function onFileChange(event: Event) {
+  const input = event.target as HTMLInputElement;
+  files.value = input.files ? Array.from(input.files) : [];
+}
+
+async function onPost() {
+  if (!auth.accessToken || !selectedSectionId.value || !selectedSubjectId.value || !text.value) return;
+  message.value = null;
+  errorMessage.value = null;
+  isSaving.value = true;
+
+  try {
+    const fileIds: string[] = [];
+    for (const file of files.value) {
+      const uploaded = await api.uploadFile(auth.accessToken, file);
+      fileIds.push(uploaded.id);
+    }
+
+    await api.createDiaryEntry(auth.accessToken, {
+      sectionId: selectedSectionId.value,
+      subjectId: selectedSubjectId.value,
+      date: today,
+      text: text.value,
+      dueDate: dueDate.value || undefined,
+      fileIds: fileIds.length ? fileIds : undefined,
+    });
+
+    message.value = 'Diary entry posted.';
+    text.value = '';
+    dueDate.value = '';
+    files.value = [];
+    await loadEntries();
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+  } finally {
+    isSaving.value = false;
+  }
+}
+</script>
+
+<template>
+  <div class="diary">
+    <h1>Diary</h1>
+    <p class="subtitle">{{ today }}</p>
+
+    <label class="field">
+      <span>Section</span>
+      <select data-testid="section-select" v-model="selectedSectionId" @change="loadEntries">
+        <option value="" disabled>Choose a section</option>
+        <option v-for="s in sections" :key="s.id" :value="s.id">
+          {{ s.className }} {{ s.name }} — {{ s.campusName }}
+        </option>
+      </select>
+    </label>
+
+    <label class="field">
+      <span>Subject</span>
+      <select data-testid="subject-select" v-model="selectedSubjectId">
+        <option value="" disabled>Choose a subject</option>
+        <option v-for="s in subjects" :key="s.id" :value="s.id">{{ s.name }}</option>
+      </select>
+    </label>
+
+    <label class="field">
+      <span>Due date (optional)</span>
+      <input data-testid="due-date" type="date" v-model="dueDate" />
+    </label>
+
+    <label class="field">
+      <span>Entry</span>
+      <textarea data-testid="entry-text" v-model="text" rows="4" :dir="detectDirection(text)"></textarea>
+    </label>
+
+    <label class="field">
+      <span>Attachments (optional)</span>
+      <input data-testid="file-input" type="file" multiple @change="onFileChange" />
+    </label>
+
+    <p v-if="message" class="success" data-testid="success">{{ message }}</p>
+    <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
+
+    <button
+      data-testid="post-entry"
+      :disabled="isSaving || !selectedSectionId || !selectedSubjectId || !text"
+      @click="onPost"
+    >
+      {{ isSaving ? 'Posting…' : 'Post entry' }}
+    </button>
+
+    <template v-if="entries.length">
+      <h2>This section's entries</h2>
+      <ul class="entries">
+        <li v-for="entry in entries" :key="entry.id">
+          <strong>{{ entry.subject }}</strong> — {{ entry.date }}
+          <span v-if="entry.dueDate"> (due {{ entry.dueDate }})</span>
+          <DirectionalText :text="entry.text" />
+        </li>
+      </ul>
+    </template>
+  </div>
+</template>
+
+<style scoped>
+.diary {
+  max-width: 640px;
+}
+.subtitle {
+  color: var(--color-muted);
+  margin-bottom: var(--space-4);
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--space-4);
+  max-width: 480px;
+}
+select,
+input,
+textarea {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font: inherit;
+}
+.success {
+  color: var(--color-accent);
+}
+.error {
+  color: var(--color-destructive);
+}
+button {
+  padding: 0.6rem 1.1rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: var(--color-on-primary);
+  font-weight: 700;
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.entries {
+  list-style: none;
+  padding: 0;
+  margin-top: var(--space-3);
+}
+.entries li {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+</style>

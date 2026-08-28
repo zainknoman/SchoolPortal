@@ -29,8 +29,8 @@ async function onLogout() {
     <div class="body">
       <nav class="sidenav" aria-label="Main">
         <template v-if="isTeacher">
-          <a data-testid="nav-attendance" href="#"><Icon name="calendar" />Attendance</a>
-          <a data-testid="nav-diary" href="#"><Icon name="notebook" />Diary</a>
+          <RouterLink data-testid="nav-attendance" to="/teacher"><Icon name="calendar" />Attendance</RouterLink>
+          <RouterLink data-testid="nav-diary" to="/teacher/diary"><Icon name="notebook" />Diary</RouterLink>
           <a data-testid="nav-timetable" href="#"><Icon name="clock" />Timetable</a>
           <a data-testid="nav-messages" href="#"><Icon name="chat" />Messages</a>
         </template>

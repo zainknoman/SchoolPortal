@@ -25,6 +25,12 @@ const router = createRouter({
       meta: { requiresRole: ['TEACHER'] },
     },
     {
+      path: '/teacher/diary',
+      name: 'teacher-diary',
+      component: () => import('../views/DiaryView.vue'),
+      meta: { requiresRole: ['TEACHER'] },
+    },
+    {
       path: '/admin',
       name: 'admin-home',
       component: () => import('../views/AdminHomeView.vue'),
