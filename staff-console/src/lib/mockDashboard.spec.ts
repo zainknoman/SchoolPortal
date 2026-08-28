@@ -13,7 +13,7 @@ describe('getMockDashboardSummary', () => {
     expect(summary.absentToday).toBe(84);
     expect(summary.teachersAbsent).toBe(6);
     expect(summary.weeklyTrend).toHaveLength(7);
-    expect(summary.weeklyTrend[0].day).toBe('Mon');
+    expect(summary.weeklyTrend[0]!.day).toBe('Mon');
     expect(summary.recentAlerts.length).toBeGreaterThan(0);
   });
 });

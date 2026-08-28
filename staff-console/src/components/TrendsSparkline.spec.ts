@@ -17,7 +17,7 @@ describe('TrendsSparkline', () => {
     const polylines = wrapper.findAll('polyline');
     expect(polylines).toHaveLength(2);
     // y is inverted (0 -> bottom/100, 100 -> top/0) so a chart reads bottom-to-top like the wireframe
-    expect(polylines[0].attributes('points')).toBe('0,100 50,50 100,0');
+    expect(polylines[0]!.attributes('points')).toBe('0,100 50,50 100,0');
 
     expect(wrapper.text()).toContain('Attendance %');
     expect(wrapper.text()).toContain('Fees Collected (PKR)');
