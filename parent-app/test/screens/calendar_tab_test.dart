@@ -141,5 +141,6 @@ void main() {
 
     expect(find.textContaining('Urdu'), findsOneWidget);
     expect(find.text('کتاب لائیں'), findsOneWidget);
+    expect(find.byKey(const Key('diaryEntryd1')), findsOneWidget);
   });
 }

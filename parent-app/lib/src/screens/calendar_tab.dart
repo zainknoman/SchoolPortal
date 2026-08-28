@@ -236,45 +236,48 @@ class _DiaryTabState extends State<_DiaryTab> {
     if (_entries == null) return const Center(child: CircularProgressIndicator());
     if (_entries!.isEmpty) return const Center(child: Text('No diary entries yet.'));
 
-    return ListView.separated(
+    return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _entries!.length,
-      separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, i) {
         final e = _entries![i];
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Wrap(
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  DirectionalText(e.subject, style: Theme.of(context).textTheme.titleSmall),
-                  Text(
-                    ' · ${e.date}${e.dueDate != null ? ' (due ${e.dueDate})' : ''}',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              DirectionalText(e.text),
-              if (e.attachments.isNotEmpty)
+        return Card(
+          key: Key('diaryEntry${e.id}'),
+          margin: const EdgeInsets.only(bottom: 12),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Wrap(
-                  spacing: 8,
-                  children: e.attachments
-                      .map(
-                        (a) => ActionChip(
-                          label: Text(a.originalName),
-                          onPressed: () => launchUrl(
-                            widget.api.fileDownloadUrl(a.id, widget.accessToken),
-                            mode: LaunchMode.externalApplication,
-                          ),
-                        ),
-                      )
-                      .toList(),
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    DirectionalText(e.subject, style: Theme.of(context).textTheme.titleSmall),
+                    Text(
+                      ' · ${e.date}${e.dueDate != null ? ' (due ${e.dueDate})' : ''}',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                  ],
                 ),
-            ],
+                const SizedBox(height: 4),
+                DirectionalText(e.text),
+                if (e.attachments.isNotEmpty)
+                  Wrap(
+                    spacing: 8,
+                    children: e.attachments
+                        .map(
+                          (a) => ActionChip(
+                            label: Text(a.originalName),
+                            onPressed: () => launchUrl(
+                              widget.api.fileDownloadUrl(a.id, widget.accessToken),
+                              mode: LaunchMode.externalApplication,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+              ],
+            ),
           ),
         );
       },
