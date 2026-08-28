@@ -186,4 +186,39 @@ export const api = {
       throw new ApiError(await parseErrorMessage(res), res.status);
     }
   },
+
+  async listCirculars(accessToken: string): Promise<CircularSummary[]> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/circulars`, { headers: authHeaders(accessToken) });
+    return asJson(res);
+  },
+
+  async publishCircular(
+    accessToken: string,
+    payload: {
+      title: string;
+      description: string;
+      scope: 'school' | 'section';
+      sectionId?: string;
+      fileIds?: string[];
+    },
+  ): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/circulars`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders(accessToken) },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      throw new ApiError(await parseErrorMessage(res), res.status);
+    }
+  },
+
+  async circularStats(
+    accessToken: string,
+    circularId: string,
+  ): Promise<{ delivered: number; read: number }> {
+    const res = await fetch(`${API_BASE_URL}/api/v1/circulars/${circularId}/stats`, {
+      headers: authHeaders(accessToken),
+    });
+    return asJson(res);
+  },
 };

@@ -36,6 +36,12 @@ const router = createRouter({
       component: () => import('../views/AdminHomeView.vue'),
       meta: { requiresRole: ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'] },
     },
+    {
+      path: '/admin/circulars',
+      name: 'admin-circulars',
+      component: () => import('../views/CircularsView.vue'),
+      meta: { requiresRole: ['SCHOOL_ADMIN', 'SUPER_ADMIN'] },
+    },
     { path: '/', redirect: '/login' },
   ],
 });

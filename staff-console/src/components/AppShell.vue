@@ -40,7 +40,7 @@ async function onLogout() {
           <a data-testid="nav-teachers" href="#"><Icon name="chalkboard" />Teachers</a>
           <a data-testid="nav-classes" href="#"><Icon name="grid" />Classes</a>
           <a data-testid="nav-timetable" href="#"><Icon name="clock" />Timetable</a>
-          <a data-testid="nav-circulars" href="#"><Icon name="megaphone" />Circulars</a>
+          <RouterLink data-testid="nav-circulars" to="/admin/circulars"><Icon name="megaphone" />Circulars</RouterLink>
           <a data-testid="nav-fees" href="#"><Icon name="receipt" />Fees</a>
         </template>
       </nav>
