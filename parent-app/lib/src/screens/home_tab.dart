@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import '../api/api_client.dart';
 import '../api/models.dart';
+import '../theme/text_direction.dart';
 
 /// Home tab (bottom-nav index 0) — greeting, active-child summary, a 2x2 stat/quick-link grid,
-/// and the most recent announcements. Fetches its own attendance + circulars data, the same
-/// self-contained pattern `CalendarTab` and `CircularsTab` already use.
+/// and the most recent announcements. Fetches its own attendance data (the same self-contained
+/// pattern `CalendarTab` and `CircularsTab` use); circulars are passed down from `HomeShell`,
+/// which already fetches them for the Notifications bottom-nav badge — avoids a redundant
+/// parent-scoped fetch every time the active child changes.
 class HomeTab extends StatefulWidget {
   const HomeTab({
     super.key,
@@ -13,6 +16,7 @@ class HomeTab extends StatefulWidget {
     required this.childClass,
     required this.accessToken,
     required this.api,
+    required this.circulars,
     required this.onOpenTimetable,
     required this.onSeeAllAnnouncements,
   });
@@ -22,6 +26,7 @@ class HomeTab extends StatefulWidget {
   final String childClass;
   final String accessToken;
   final ApiClient api;
+  final List<CircularSummary> circulars;
   final VoidCallback onOpenTimetable;
   final VoidCallback onSeeAllAnnouncements;
 
@@ -31,47 +36,40 @@ class HomeTab extends StatefulWidget {
 
 class _HomeTabState extends State<HomeTab> {
   AttendanceReport? _attendance;
-  List<CircularSummary>? _circulars;
-  String? _error;
+  String? _attendanceError;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _loadAttendance();
   }
 
-  Future<void> _load() async {
+  Future<void> _loadAttendance() async {
     final month = DateTime.now().toIso8601String().substring(0, 7);
     try {
       final attendance = await widget.api.attendance(widget.accessToken, widget.studentId, month);
-      final circulars = await widget.api.circulars(widget.accessToken);
-      if (!mounted) return;
-      setState(() {
-        _attendance = attendance;
-        _circulars = circulars;
-      });
+      if (mounted) setState(() => _attendance = attendance);
     } on ApiException catch (e) {
-      if (mounted) setState(() => _error = e.message);
+      if (mounted) setState(() => _attendanceError = e.message);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_error != null) return Center(child: Text(_error!));
-    final attendance = _attendance;
-    final circulars = _circulars;
-    if (attendance == null || circulars == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final recentAnnouncements = [...circulars]..sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
+    final recentAnnouncements = [...widget.circulars]
+      ..sort((a, b) => b.publishedAt.compareTo(a.publishedAt));
     final topAnnouncements = recentAnnouncements.take(2).toList();
+
+    final attendanceValue = _attendance != null
+        ? '${_attendance!.summary.attendancePercentage}%'
+        : (_attendanceError != null ? '—' : '…');
+    final attendanceHint = _attendanceError != null ? 'Unavailable' : 'This Month';
 
     // A SingleChildScrollView + Column (rather than ListView) so every child — including the
     // 2x2 stat grid and the announcements below it — is built eagerly. A ListView's SliverList
-    // estimates offscreen extents from already-laid-out siblings, and the tall GridView.count
-    // ahead of the announcements section made it under-estimate and stop building children that
-    // are well within the default 250px cache extent.
+    // estimates offscreen extents from already-laid-out siblings, and the tall GridView ahead of
+    // the announcements section made it under-estimate and stop building children that are well
+    // within the default 250px cache extent.
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -100,19 +98,24 @@ class _HomeTabState extends State<HomeTab> {
             ),
           ),
           const SizedBox(height: 12),
-          GridView.count(
-            crossAxisCount: 2,
+          GridView(
+            // A fixed mainAxisExtent (not childAspectRatio) so each cell's height doesn't scale
+            // with the device's width — an aspect-ratio-derived height fits a wide test/desktop
+            // viewport but overflows real phone widths, where each cell is much narrower.
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              mainAxisExtent: 136,
+            ),
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 2.6,
             children: [
               _StatCard(
                 key: const Key('homeAttendanceCard'),
                 label: 'Attendance',
-                value: '${attendance.summary.attendancePercentage}%',
-                hint: 'This Month',
+                value: attendanceValue,
+                hint: attendanceHint,
               ),
               const _StatCard(
                 key: Key('homeFeesCard'),
@@ -137,7 +140,13 @@ class _HomeTabState extends State<HomeTab> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Recent Announcements', style: Theme.of(context).textTheme.titleSmall),
+              Expanded(
+                child: Text(
+                  'Recent Announcements',
+                  style: Theme.of(context).textTheme.titleSmall,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               TextButton(
                 key: const Key('homeSeeAllAnnouncements'),
                 onPressed: widget.onSeeAllAnnouncements,
@@ -149,7 +158,10 @@ class _HomeTabState extends State<HomeTab> {
           for (final c in topAnnouncements)
             Card(
               margin: const EdgeInsets.only(bottom: 8),
-              child: ListTile(title: Text(c.title), subtitle: Text(c.description)),
+              child: ListTile(
+                title: DirectionalText(c.title),
+                subtitle: DirectionalText(c.description),
+              ),
             ),
         ],
       ),

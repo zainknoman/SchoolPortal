@@ -25,16 +25,17 @@ class _HomeShellState extends State<HomeShell> {
   String? _activeChildId;
   bool _isLoading = true;
   String? _loadError;
+  List<CircularSummary> _circulars = [];
   int _unreadCirculars = 0;
 
   @override
   void initState() {
     super.initState();
     _loadChildren();
-    _loadUnreadCirculars();
+    _loadCirculars();
   }
 
-  Future<void> _loadUnreadCirculars() async {
+  Future<void> _loadCirculars() async {
     final auth = context.read<AuthState>();
     final api = context.read<ApiClient>();
     final token = auth.accessToken;
@@ -42,11 +43,14 @@ class _HomeShellState extends State<HomeShell> {
     try {
       final circulars = await api.circulars(token);
       if (mounted) {
-        setState(() => _unreadCirculars = circulars.where((c) => c.readAt == null).length);
+        setState(() {
+          _circulars = circulars;
+          _unreadCirculars = circulars.where((c) => c.readAt == null).length;
+        });
       }
     } on ApiException {
-      // Badge is a convenience, not the critical path — the Notifications tab itself will
-      // surface the real error if the parent opens it.
+      // The Home tab's announcements and the Notifications badge are conveniences, not the
+      // critical path — the Notifications tab itself will surface the real error if opened.
     }
   }
 
@@ -157,6 +161,7 @@ class _HomeShellState extends State<HomeShell> {
         childClass: '${child.schoolClass} ${child.section}',
         accessToken: auth.accessToken!,
         api: api,
+        circulars: _circulars,
         onOpenTimetable: () => setState(() => _tabIndex = 1),
         onSeeAllAnnouncements: () => setState(() => _tabIndex = 2),
       );
