@@ -3,12 +3,14 @@ import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import Icon from './AppIcon.vue';
+import { roleInitials } from '../lib/format';
 
 const auth = useAuthStore();
 const router = useRouter();
 
 const isTeacher = computed(() => auth.role === 'TEACHER');
 const isAdmin = computed(() => ['SCHOOL_ADMIN', 'ACCOUNTS', 'SUPER_ADMIN'].includes(auth.role ?? ''));
+const avatarInitials = computed(() => roleInitials(auth.role));
 
 async function onLogout() {
   auth.logout();
@@ -20,10 +22,16 @@ async function onLogout() {
   <div class="shell">
     <header class="topbar">
       <span class="brand">SEEDS Staff Console</span>
-      <button data-testid="logout" class="logout" @click="onLogout">
-        <Icon name="logout" :size="16" />
-        Log out
-      </button>
+      <div class="topbar-actions">
+        <button data-testid="notifications" class="icon-button" aria-label="Notifications">
+          <Icon name="bell" :size="18" />
+        </button>
+        <span data-testid="avatar" class="avatar" aria-hidden="true">{{ avatarInitials }}</span>
+        <button data-testid="logout" class="logout" @click="onLogout">
+          <Icon name="logout" :size="16" />
+          Log out
+        </button>
+      </div>
     </header>
 
     <div class="body">
@@ -35,13 +43,14 @@ async function onLogout() {
           <a data-testid="nav-messages" href="#"><Icon name="chat" />Messages</a>
         </template>
         <template v-else-if="isAdmin">
+          <RouterLink data-testid="nav-dashboard" to="/admin"><Icon name="home" />Dashboard</RouterLink>
           <a data-testid="nav-students" href="#"><Icon name="users" />Students</a>
           <a data-testid="nav-parents" href="#"><Icon name="user-circle" />Parents</a>
           <a data-testid="nav-teachers" href="#"><Icon name="chalkboard" />Teachers</a>
           <a data-testid="nav-classes" href="#"><Icon name="grid" />Classes</a>
           <a data-testid="nav-timetable" href="#"><Icon name="clock" />Timetable</a>
           <RouterLink data-testid="nav-circulars" to="/admin/circulars"><Icon name="megaphone" />Circulars</RouterLink>
-          <a data-testid="nav-fees" href="#"><Icon name="receipt" />Fees</a>
+          <RouterLink data-testid="nav-fees" to="/admin/fees"><Icon name="receipt" />Fees</RouterLink>
         </template>
       </nav>
 
@@ -72,6 +81,42 @@ async function onLogout() {
 .brand {
   font-weight: 700;
   color: var(--color-primary);
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.icon-button:hover {
+  background: var(--color-muted-bg);
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
 }
 
 .logout {
@@ -123,6 +168,10 @@ async function onLogout() {
 .sidenav a:hover,
 .sidenav a:focus-visible {
   background: var(--color-muted-bg);
+}
+.sidenav a.router-link-active {
+  background: var(--color-muted-bg);
+  font-weight: 600;
 }
 
 .content {

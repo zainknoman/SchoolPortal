@@ -12,6 +12,7 @@ function makeRouter() {
       { path: '/login', name: 'login', component: { template: '<div>login</div>' } },
       { path: '/teacher', name: 'teacher-home', component: { template: '<div>teacher</div>' } },
       { path: '/admin', name: 'admin-home', component: { template: '<div>admin</div>' } },
+      { path: '/admin/fees', name: 'admin-fees', component: { template: '<div>fees</div>' } },
     ],
   });
 }
@@ -40,11 +41,13 @@ describe('AppShell (role-gated nav)', () => {
     expect(wrapper.text()).not.toContain('Fees');
     expect(wrapper.find('[data-testid="nav-students"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="nav-fees"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="nav-dashboard"]').exists()).toBe(false);
   });
 
   it('shows Admin/Accounts nav items for a SCHOOL_ADMIN role, with no teacher-only items', async () => {
     const wrapper = await mountAsRole('SCHOOL_ADMIN');
 
+    expect(wrapper.text()).toContain('Dashboard');
     expect(wrapper.text()).toContain('Students');
     expect(wrapper.text()).toContain('Parents');
     expect(wrapper.text()).toContain('Teachers');
@@ -55,6 +58,28 @@ describe('AppShell (role-gated nav)', () => {
 
     expect(wrapper.find('[data-testid="nav-attendance"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="nav-diary"]').exists()).toBe(false);
+
+    expect(wrapper.find('[data-testid="nav-dashboard"]').attributes('href')).toBe('/admin');
+    expect(wrapper.find('[data-testid="nav-fees"]').attributes('href')).toBe('/admin/fees');
+  });
+
+  it('shows a role-initials avatar and a notifications bell in the topbar', async () => {
+    const wrapper = await mountAsRole('ACCOUNTS');
+
+    expect(wrapper.find('[data-testid="avatar"]').text()).toBe('AC');
+    expect(wrapper.find('[data-testid="notifications"]').exists()).toBe(true);
+  });
+
+  it('highlights the active nav item with the router-link-active class', async () => {
+    setActivePinia(createPinia());
+    const auth = useAuthStore();
+    auth.role = 'SCHOOL_ADMIN';
+    const router = makeRouter();
+    await router.push('/admin');
+    await router.isReady();
+    const wrapper = mount(AppShell, { global: { plugins: [router] } });
+
+    expect(wrapper.find('[data-testid="nav-dashboard"]').classes()).toContain('router-link-active');
   });
 
   it('logs out and returns to /login when the logout control is used', async () => {
