@@ -4,6 +4,7 @@ import '../api/api_client.dart';
 import '../api/models.dart';
 import '../auth/auth_state.dart';
 import 'calendar_tab.dart';
+import 'circulars_tab.dart';
 
 /// Authenticated shell: multi-child switcher up top, bottom nav below (Home / Calendar /
 /// Notifications / Messages / Fees / More — per the MVP plan). Every tab is a placeholder;
@@ -23,11 +24,29 @@ class _HomeShellState extends State<HomeShell> {
   String? _activeChildId;
   bool _isLoading = true;
   String? _loadError;
+  int _unreadCirculars = 0;
 
   @override
   void initState() {
     super.initState();
     _loadChildren();
+    _loadUnreadCirculars();
+  }
+
+  Future<void> _loadUnreadCirculars() async {
+    final auth = context.read<AuthState>();
+    final api = context.read<ApiClient>();
+    final token = auth.accessToken;
+    if (token == null) return;
+    try {
+      final circulars = await api.circulars(token);
+      if (mounted) {
+        setState(() => _unreadCirculars = circulars.where((c) => c.readAt == null).length);
+      }
+    } on ApiException {
+      // Badge is a convenience, not the critical path — the Notifications tab itself will
+      // surface the real error if the parent opens it.
+    }
   }
 
   Future<void> _loadChildren() async {
@@ -74,13 +93,18 @@ class _HomeShellState extends State<HomeShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tabIndex,
         onDestinationSelected: (i) => setState(() => _tabIndex = i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.calendar_month_outlined), label: 'Calendar'),
-          NavigationDestination(icon: Icon(Icons.notifications_none), label: 'Notifications'),
-          NavigationDestination(icon: Icon(Icons.chat_bubble_outline), label: 'Messages'),
-          NavigationDestination(icon: Icon(Icons.receipt_long_outlined), label: 'Fees'),
-          NavigationDestination(icon: Icon(Icons.more_horiz), label: 'More'),
+        destinations: [
+          const NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
+          const NavigationDestination(icon: Icon(Icons.calendar_month_outlined), label: 'Calendar'),
+          NavigationDestination(
+            icon: _unreadCirculars > 0
+                ? Badge(label: Text('$_unreadCirculars'), child: const Icon(Icons.notifications_none))
+                : const Icon(Icons.notifications_none),
+            label: 'Notifications',
+          ),
+          const NavigationDestination(icon: Icon(Icons.chat_bubble_outline), label: 'Messages'),
+          const NavigationDestination(icon: Icon(Icons.receipt_long_outlined), label: 'Fees'),
+          const NavigationDestination(icon: Icon(Icons.more_horiz), label: 'More'),
         ],
       ),
     );
@@ -133,14 +157,24 @@ class _HomeShellState extends State<HomeShell> {
       );
     }
 
+    if (_tabIndex == 2) {
+      final auth = context.read<AuthState>();
+      final api = context.read<ApiClient>();
+      return CircularsTab(
+        accessToken: auth.accessToken!,
+        api: api,
+        onUnreadChanged: (count) => setState(() => _unreadCirculars = count),
+      );
+    }
+
     final labels = ['Home', 'Calendar', 'Notifications', 'Messages', 'Fees', 'More'];
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Text(
           '${labels[_tabIndex]} for ${child.name}\n\n'
-          'Diary/circulars/messages/fees land here in the next sprint — this screen confirms '
-          'login, multi-child switching, and role-gated routing are wired end to end.',
+          'Messages/fees land here in future sprints — this screen confirms login, multi-child '
+          'switching, and role-gated routing are wired end to end.',
           textAlign: TextAlign.center,
         ),
       ),
