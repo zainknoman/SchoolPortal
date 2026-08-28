@@ -74,4 +74,30 @@ class ApiClient {
             as Map<String, dynamic>;
     return AttendanceReport.fromJson(json);
   }
+
+  Future<List<DiaryEntry>> diary(String accessToken, String studentId, String month) async {
+    final list =
+        await _get('/api/v1/students/$studentId/diary?month=$month', accessToken) as List<dynamic>;
+    return list.map((e) => DiaryEntry.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<List<CircularSummary>> circulars(String accessToken) async {
+    final list = await _get('/api/v1/circulars', accessToken) as List<dynamic>;
+    return list.map((e) => CircularSummary.fromJson(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> markCircularRead(String accessToken, String circularId) async {
+    final res = await _client.post(
+      Uri.parse('$baseUrl/api/v1/circulars/$circularId/read'),
+      headers: {'Authorization': 'Bearer $accessToken'},
+    );
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      throw ApiException(_errorMessage(res), res.statusCode);
+    }
+  }
+
+  /// A direct, headers-free download link — the backend's JwtStrategy accepts the token as
+  /// ?access_token= specifically so links like this (opened via url_launcher) can authenticate.
+  Uri fileDownloadUrl(String fileId, String accessToken) =>
+      Uri.parse('$baseUrl/api/v1/files/$fileId').replace(queryParameters: {'access_token': accessToken});
 }

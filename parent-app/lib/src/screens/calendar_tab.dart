@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../api/api_client.dart';
 import '../api/models.dart';
+import '../theme/text_direction.dart';
 
 const _dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-/// Calendar → Timetable / Attendance / Diary tabs, per the MVP plan. Diary lands in the next
-/// sprint (FEAT-008) — its tab is a placeholder for now so the three-tab structure is already in
-/// place and doesn't need reshuffling later.
+/// Calendar → Timetable / Attendance / Diary tabs, per the MVP plan.
 class CalendarTab extends StatelessWidget {
   const CalendarTab({super.key, required this.studentId, required this.accessToken, required this.api});
 
@@ -28,7 +28,7 @@ class CalendarTab extends StatelessWidget {
               children: [
                 _TimetableTab(studentId: studentId, accessToken: accessToken, api: api),
                 _AttendanceTab(studentId: studentId, accessToken: accessToken, api: api),
-                const Center(child: Text('Diary lands in the next sprint.')),
+                _DiaryTab(studentId: studentId, accessToken: accessToken, api: api),
               ],
             ),
           ),
@@ -163,6 +163,82 @@ class _AttendanceTabState extends State<_AttendanceTab> {
         for (final day in report.days.reversed)
           ListTile(dense: true, title: Text(day.date), trailing: Text(day.status)),
       ],
+    );
+  }
+}
+
+class _DiaryTab extends StatefulWidget {
+  const _DiaryTab({required this.studentId, required this.accessToken, required this.api});
+  final String studentId;
+  final String accessToken;
+  final ApiClient api;
+
+  @override
+  State<_DiaryTab> createState() => _DiaryTabState();
+}
+
+class _DiaryTabState extends State<_DiaryTab> {
+  List<DiaryEntry>? _entries;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final month = DateTime.now().toIso8601String().substring(0, 7);
+    try {
+      final entries = await widget.api.diary(widget.accessToken, widget.studentId, month);
+      if (mounted) setState(() => _entries = entries);
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) return Center(child: Text(_error!));
+    if (_entries == null) return const Center(child: CircularProgressIndicator());
+    if (_entries!.isEmpty) return const Center(child: Text('No diary entries yet.'));
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: _entries!.length,
+      separatorBuilder: (_, _) => const Divider(height: 1),
+      itemBuilder: (context, i) {
+        final e = _entries![i];
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${e.subject} · ${e.date}${e.dueDate != null ? ' (due ${e.dueDate})' : ''}',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: 4),
+              DirectionalText(e.text),
+              if (e.attachments.isNotEmpty)
+                Wrap(
+                  spacing: 8,
+                  children: e.attachments
+                      .map(
+                        (a) => ActionChip(
+                          label: Text(a.originalName),
+                          onPressed: () => launchUrl(
+                            widget.api.fileDownloadUrl(a.id, widget.accessToken),
+                            mode: LaunchMode.externalApplication,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

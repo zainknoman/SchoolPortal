@@ -119,3 +119,86 @@ class AttendanceReport {
     summary: AttendanceSummary.fromJson(json['summary'] as Map<String, dynamic>),
   );
 }
+
+class DiaryAttachment {
+  const DiaryAttachment({required this.id, required this.originalName, required this.mimeType});
+  final String id;
+  final String originalName;
+  final String mimeType;
+
+  factory DiaryAttachment.fromJson(Map<String, dynamic> json) => DiaryAttachment(
+    id: json['id'] as String,
+    originalName: json['originalName'] as String,
+    mimeType: json['mimeType'] as String,
+  );
+}
+
+class DiaryEntry {
+  const DiaryEntry({
+    required this.id,
+    required this.date,
+    required this.dueDate,
+    required this.subject,
+    required this.teacher,
+    required this.text,
+    required this.attachments,
+  });
+
+  final String id;
+  final String date;
+  final String? dueDate;
+  final String subject;
+  final String teacher;
+  final String text;
+  final List<DiaryAttachment> attachments;
+
+  factory DiaryEntry.fromJson(Map<String, dynamic> json) => DiaryEntry(
+    id: json['id'] as String,
+    date: json['date'] as String,
+    dueDate: json['dueDate'] as String?,
+    subject: json['subject'] as String,
+    teacher: json['teacher'] as String,
+    text: json['text'] as String,
+    attachments: (json['attachments'] as List<dynamic>)
+        .map((e) => DiaryAttachment.fromJson(e as Map<String, dynamic>))
+        .toList(),
+  );
+}
+
+class CircularSummary {
+  const CircularSummary({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.scope,
+    required this.priority,
+    required this.publishedAt,
+    required this.expiresAt,
+    required this.attachments,
+    required this.readAt,
+  });
+
+  final String id;
+  final String title;
+  final String description;
+  final String scope;
+  final String priority;
+  final String publishedAt;
+  final String? expiresAt;
+  final List<DiaryAttachment> attachments;
+  final String? readAt;
+
+  factory CircularSummary.fromJson(Map<String, dynamic> json) => CircularSummary(
+    id: json['id'] as String,
+    title: json['title'] as String,
+    description: json['description'] as String,
+    scope: json['scope'] as String,
+    priority: json['priority'] as String,
+    publishedAt: json['publishedAt'] as String,
+    expiresAt: json['expiresAt'] as String?,
+    attachments: (json['attachments'] as List<dynamic>)
+        .map((e) => DiaryAttachment.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    readAt: json['readAt'] as String?,
+  );
+}
