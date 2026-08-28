@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateTimetableEntryDto } from './dto/create-timetable-entry.dto';
+import { EnrollmentService } from '../enrollment/enrollment.service';
 
 export interface TimetableEntrySummary {
   id: string;
@@ -15,18 +16,17 @@ export interface TimetableEntrySummary {
 
 @Injectable()
 export class TimetableService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly enrollmentService: EnrollmentService,
+  ) {}
 
   async getForStudent(studentId: string): Promise<TimetableEntrySummary[]> {
-    const student = await this.prisma.student.findUnique({
-      where: { id: studentId },
-    });
-    if (!student) {
-      throw new NotFoundException('Student not found');
-    }
+    const enrollment =
+      await this.enrollmentService.getCurrentEnrollment(studentId);
 
     const entries = await this.prisma.timetable.findMany({
-      where: { sectionId: student.sectionId },
+      where: { sectionId: enrollment.sectionId },
       orderBy: [{ dayOfWeek: 'asc' }, { period: 'asc' }],
       include: { subject: true, teacher: true },
     });

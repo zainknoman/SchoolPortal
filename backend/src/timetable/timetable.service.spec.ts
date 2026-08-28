@@ -1,32 +1,28 @@
 import { Test } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
 import { TimetableService } from './timetable.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { EnrollmentService } from '../enrollment/enrollment.service';
 
 describe('TimetableService', () => {
   let service: TimetableService;
-  let prisma: {
-    student: { findUnique: jest.Mock };
-    timetable: { findMany: jest.Mock; create: jest.Mock };
-  };
+  let prisma: { timetable: { findMany: jest.Mock; create: jest.Mock } };
+  let enrollmentService: { getCurrentEnrollment: jest.Mock };
 
   beforeEach(async () => {
-    prisma = {
-      student: { findUnique: jest.fn() },
-      timetable: { findMany: jest.fn(), create: jest.fn() },
-    };
+    prisma = { timetable: { findMany: jest.fn(), create: jest.fn() } };
+    enrollmentService = { getCurrentEnrollment: jest.fn() };
     const moduleRef = await Test.createTestingModule({
       providers: [
         TimetableService,
         { provide: PrismaService, useValue: prisma },
+        { provide: EnrollmentService, useValue: enrollmentService },
       ],
     }).compile();
     service = moduleRef.get(TimetableService);
   });
 
-  it("returns the student's section timetable ordered by day then period", async () => {
-    prisma.student.findUnique.mockResolvedValue({
-      id: 's1',
+  it("returns the student's current-enrollment section timetable ordered by day then period", async () => {
+    enrollmentService.getCurrentEnrollment.mockResolvedValue({
       sectionId: 'sec-1',
     });
     prisma.timetable.findMany.mockResolvedValue([
@@ -44,6 +40,7 @@ describe('TimetableService', () => {
 
     const result = await service.getForStudent('s1');
 
+    expect(enrollmentService.getCurrentEnrollment).toHaveBeenCalledWith('s1');
     expect(prisma.timetable.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { sectionId: 'sec-1' },
@@ -56,14 +53,6 @@ describe('TimetableService', () => {
         teacher: 'Ms. Sample',
         room: '3A',
       }),
-    );
-  });
-
-  it('throws NotFoundException for an unknown student', async () => {
-    prisma.student.findUnique.mockResolvedValue(null);
-
-    await expect(service.getForStudent('missing')).rejects.toThrow(
-      NotFoundException,
     );
   });
 
