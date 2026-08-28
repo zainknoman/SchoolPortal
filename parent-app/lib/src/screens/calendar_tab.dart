@@ -190,7 +190,11 @@ class _AttendanceTabState extends State<_AttendanceTab> {
         ),
         const SizedBox(height: 12),
         for (final day in report.days.reversed)
-          ListTile(dense: true, title: Text(day.date), trailing: Text(day.status)),
+          Card(
+            key: Key('attendanceDay${day.date}'),
+            margin: const EdgeInsets.only(bottom: 8),
+            child: ListTile(dense: true, title: Text(day.date), trailing: Text(day.status)),
+          ),
       ],
     );
   }

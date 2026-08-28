@@ -81,6 +81,7 @@ void main() {
 
     expect(find.textContaining('86%'), findsOneWidget);
     expect(find.textContaining('18'), findsWidgets);
+    expect(find.byKey(const Key('attendanceDay2026-08-27')), findsOneWidget);
   });
 
   testWidgets('Diary tab shows the structured entry, direction-aware', (tester) async {
