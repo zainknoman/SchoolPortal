@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { createRouter, createMemoryHistory } from 'vue-router';
 import AdminHomeView from './AdminHomeView.vue';
@@ -23,7 +23,9 @@ async function mountView() {
   const router = makeRouter();
   await router.push('/admin');
   await router.isReady();
-  return mount(AdminHomeView, { global: { plugins: [router] } });
+  const wrapper = mount(AdminHomeView, { global: { plugins: [router] } });
+  await flushPromises();
+  return wrapper;
 }
 
 describe('AdminHomeView (Dashboard)', () => {
@@ -35,9 +37,7 @@ describe('AdminHomeView (Dashboard)', () => {
     expect(text).toContain('93.5%');
     expect(text).toContain('2.4M');
     expect(text).toContain('680K');
-    expect(text).toContain('37');
-    expect(text).toContain('84');
-    expect(text).toContain('6');
+    expect(wrapper.findAll('.secondary-value').map((n) => n.text())).toEqual(['37', '84', '6']);
   });
 
   it('renders the trends chart and the recent alerts list', async () => {

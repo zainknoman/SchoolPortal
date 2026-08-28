@@ -1,33 +1,46 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import AppShell from '../components/AppShell.vue';
 import Icon from '../components/AppIcon.vue';
 import TrendsSparkline from '../components/TrendsSparkline.vue';
-import { getMockDashboardSummary } from '../lib/mockDashboard';
-import { formatPkrShort } from '../lib/format';
+import { getMockDashboardSummary, type DashboardSummary } from '../lib/mockDashboard';
+import { formatPkrShort, formatPkrFull } from '../lib/format';
 
-const summary = getMockDashboardSummary();
+const summary = ref<DashboardSummary | null>(null);
+const errorMessage = ref<string | null>(null);
 
-const trendLabels = computed(() => summary.weeklyTrend.map((d) => d.day));
-const maxFees = computed(() => Math.max(...summary.weeklyTrend.map((d) => d.feesCollectedPkr)));
+onMounted(async () => {
+  try {
+    summary.value = await getMockDashboardSummary();
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Could not load dashboard data.';
+  }
+});
+
+const trendLabels = computed(() => summary.value?.weeklyTrend.map((d) => d.day) ?? []);
+const maxFees = computed(
+  () => Math.max(...(summary.value?.weeklyTrend.map((d) => d.feesCollectedPkr) ?? [0])) || 1,
+);
 const trendSeries = computed(() => [
   {
     label: 'Attendance %',
     color: 'var(--color-primary)',
-    values: summary.weeklyTrend.map((d) => d.attendancePercent),
+    values: summary.value?.weeklyTrend.map((d) => d.attendancePercent) ?? [],
   },
   {
     label: 'Fees Collected (PKR)',
     color: 'var(--color-muted)',
     dashed: true,
-    values: summary.weeklyTrend.map((d) => (d.feesCollectedPkr / maxFees.value) * 100),
+    values: summary.value?.weeklyTrend.map((d) => (d.feesCollectedPkr / maxFees.value) * 100) ?? [],
   },
 ]);
 </script>
 
 <template>
   <AppShell>
-    <div class="dashboard">
+    <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
+    <div v-else-if="!summary" class="loading">Loading…</div>
+    <div v-else class="dashboard">
       <div class="dashboard-header">
         <h1>Dashboard</h1>
       </div>
@@ -35,7 +48,7 @@ const trendSeries = computed(() => [
       <div class="stat-grid">
         <div class="stat-card">
           <div class="stat-label">Students</div>
-          <div class="stat-value">{{ summary.studentsTotal.toLocaleString() }}</div>
+          <div class="stat-value">{{ formatPkrFull(summary.studentsTotal) }}</div>
         </div>
         <div class="stat-card">
           <div class="stat-label">Present</div>
@@ -102,6 +115,14 @@ const trendSeries = computed(() => [
   flex-direction: column;
   gap: var(--space-5);
   max-width: 1200px;
+}
+.loading {
+  color: var(--color-muted);
+  padding: var(--space-5);
+}
+.error {
+  color: var(--color-destructive);
+  padding: var(--space-5);
 }
 
 .stat-grid {

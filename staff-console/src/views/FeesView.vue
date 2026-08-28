@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import AppShell from '../components/AppShell.vue';
 import {
   getMockReconciliationQueue,
@@ -8,12 +8,21 @@ import {
 } from '../lib/mockFees';
 import { formatPkrFull } from '../lib/format';
 
-const transactions = ref<ReconciliationTransaction[]>(getMockReconciliationQueue());
+const transactions = ref<ReconciliationTransaction[]>([]);
+const errorMessage = ref<string | null>(null);
 const searchQuery = ref('');
 const railFilter = ref('ALL');
 const statusFilter = ref<'ALL' | 'AUTO_MATCHED' | 'EXCEPTION'>('EXCEPTION');
 const selectedId = ref<string | null>(null);
 const manualSearch = ref('');
+
+onMounted(async () => {
+  try {
+    transactions.value = await getMockReconciliationQueue();
+  } catch (err) {
+    errorMessage.value = err instanceof Error ? err.message : 'Could not load reconciliation queue.';
+  }
+});
 
 const rails = computed(() => ['ALL', ...new Set(transactions.value.map((t) => t.rail))]);
 
@@ -65,6 +74,7 @@ function confirmResolution() {
   <AppShell>
     <div class="fees">
       <h1>Fee Reconciliation Queue</h1>
+      <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
 
       <section class="filters-card">
         <div class="filters-row">
@@ -259,8 +269,8 @@ function confirmResolution() {
   border-color: color-mix(in srgb, var(--color-destructive) 25%, white);
 }
 .stat-label {
-  font-size: var(--font-size-sm);
   color: var(--color-muted);
+  font-weight: 500;
 }
 .stat-value {
   font-size: var(--font-size-xl);
@@ -332,6 +342,9 @@ tr.clickable:hover {
 }
 .muted {
   color: var(--color-muted);
+}
+.error {
+  color: var(--color-destructive);
 }
 
 .resolve-panel {

@@ -18,6 +18,12 @@ describe('TrendsSparkline', () => {
     expect(polylines).toHaveLength(2);
     // y is inverted (0 -> bottom/100, 100 -> top/0) so a chart reads bottom-to-top like the wireframe
     expect(polylines[0]!.attributes('points')).toBe('0,100 50,50 100,0');
+    // jsdom normalizes hex colors to rgb() when serializing style attributes;
+    // #0f172a === rgb(15, 23, 42). What matters is that the color lands in the
+    // `style` attribute (CSS engine, where var() resolves), not a plain `stroke`/`fill` attribute.
+    expect(polylines[0]!.attributes('style')).toContain('stroke: rgb(15, 23, 42)');
+    const circles = wrapper.findAll('circle');
+    expect(circles[0]!.attributes('style')).toContain('fill: rgb(15, 23, 42)');
 
     expect(wrapper.text()).toContain('Attendance %');
     expect(wrapper.text()).toContain('Fees Collected (PKR)');

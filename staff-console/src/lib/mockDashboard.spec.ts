@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { getMockDashboardSummary } from './mockDashboard';
 
 describe('getMockDashboardSummary', () => {
-  it('returns the primary KPI figures and a 7-day trend', () => {
-    const summary = getMockDashboardSummary();
+  it('returns the primary KPI figures and a 7-day trend', async () => {
+    const summary = await getMockDashboardSummary();
 
     expect(summary.studentsTotal).toBe(1284);
     expect(summary.presentTodayPercent).toBe(93.5);

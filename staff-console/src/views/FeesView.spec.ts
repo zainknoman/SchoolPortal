@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { createRouter, createMemoryHistory } from 'vue-router';
 import FeesView from './FeesView.vue';
@@ -23,7 +23,9 @@ async function mountView() {
   const router = makeRouter();
   await router.push('/admin/fees');
   await router.isReady();
-  return mount(FeesView, { global: { plugins: [router] } });
+  const wrapper = mount(FeesView, { global: { plugins: [router] } });
+  await flushPromises();
+  return wrapper;
 }
 
 describe('FeesView', () => {

@@ -39,7 +39,7 @@ const lines = computed(() =>
           v-for="line in lines"
           :key="line.label"
           fill="none"
-          :stroke="line.color"
+          :style="{ stroke: line.color }"
           stroke-width="1.5"
           :stroke-dasharray="line.dashed ? '2,2' : undefined"
           :points="line.pointsAttr"
@@ -51,7 +51,7 @@ const lines = computed(() =>
             :cx="p.x"
             :cy="p.y"
             r="2"
-            :fill="line.color"
+            :style="{ fill: line.color }"
           />
         </template>
       </svg>

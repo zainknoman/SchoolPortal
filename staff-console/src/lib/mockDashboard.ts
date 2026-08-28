@@ -21,7 +21,7 @@ export interface DashboardSummary {
   recentAlerts: DashboardAlert[];
 }
 
-export function getMockDashboardSummary(): DashboardSummary {
+export async function getMockDashboardSummary(): Promise<DashboardSummary> {
   return {
     studentsTotal: 1284,
     presentTodayPercent: 93.5,

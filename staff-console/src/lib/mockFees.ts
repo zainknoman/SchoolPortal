@@ -16,7 +16,7 @@ export interface SuggestedMatch {
   amountPkr: number;
 }
 
-export function getMockReconciliationQueue(): ReconciliationTransaction[] {
+export async function getMockReconciliationQueue(): Promise<ReconciliationTransaction[]> {
   return [
     {
       id: 't1',
