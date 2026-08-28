@@ -13,7 +13,9 @@ type IconName =
   | 'grid'
   | 'megaphone'
   | 'receipt'
-  | 'logout';
+  | 'logout'
+  | 'bell'
+  | 'warning';
 
 defineProps<{ name: IconName; size?: number }>();
 </script>
@@ -81,6 +83,14 @@ defineProps<{ name: IconName; size?: number }>();
     <template v-else-if="name === 'logout'">
       <path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3" />
       <path d="M15 16l4-4-4-4M8 12h11" />
+    </template>
+    <template v-else-if="name === 'bell'">
+      <path d="M12 3a5 5 0 0 0-5 5v3.5c0 .8-.3 1.6-.9 2.2L5 15h14l-1.1-1.3a3.2 3.2 0 0 1-.9-2.2V8a5 5 0 0 0-5-5Z" />
+      <path d="M9.5 18a2.5 2.5 0 0 0 5 0" />
+    </template>
+    <template v-else-if="name === 'warning'">
+      <path d="M12 3.5 21 19H3L12 3.5Z" />
+      <path d="M12 10v4M12 16.5v.01" />
     </template>
   </svg>
 </template>
