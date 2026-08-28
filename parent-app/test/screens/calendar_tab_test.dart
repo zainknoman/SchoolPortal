@@ -23,6 +23,27 @@ void main() {
                 'teacher': 'Ms. Sample',
                 'room': '3A',
               },
+              {
+                'dayOfWeek': 1,
+                'period': 2,
+                'startTime': '08:40',
+                'endTime': '09:20',
+                'subject': 'Math',
+                'teacher': null,
+                'room': null,
+              },
+              // Period 3 is intentionally absent — the real gap between period 2's end
+              // (09:20) and period 4's start (10:00) is what should produce a BREAK column,
+              // not a missing period number by itself.
+              {
+                'dayOfWeek': 1,
+                'period': 4,
+                'startTime': '10:00',
+                'endTime': '10:40',
+                'subject': 'Science',
+                'teacher': null,
+                'room': null,
+              },
             ]),
             200,
           );
@@ -50,23 +71,40 @@ void main() {
     );
   }
 
-  testWidgets('Timetable tab groups periods by day into 7 day-rows', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(body: CalendarTab(studentId: 's1', accessToken: 'tok', api: makeClient())),
-      ),
-    );
-    await tester.pumpAndSettle();
+  testWidgets(
+    'Timetable tab renders a weekly grid: period columns, an auto-detected break column, '
+    'and holiday rows for days with no periods',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: CalendarTab(studentId: 's1', accessToken: 'tok', api: makeClient())),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    // makeClient()'s one timetable entry has dayOfWeek: 1 (Mon).
-    expect(find.byKey(const Key('timetableDay1')), findsOneWidget);
-    expect(find.textContaining('English'), findsOneWidget);
-    expect(find.textContaining('Ms. Sample'), findsOneWidget);
-    expect(find.textContaining('08:00'), findsOneWidget);
+      // Column headers come from the actual period numbers present in the data (1, 2, 4 — no
+      // period 3 exists), with a BREAK column auto-inserted wherever there's a >10-minute gap
+      // between two consecutive periods' times (here: 09:20 end of P2 to 10:00 start of P4).
+      expect(find.text('P1'), findsOneWidget);
+      expect(find.text('P2'), findsOneWidget);
+      expect(find.text('P4'), findsOneWidget);
+      expect(find.text('P3'), findsNothing);
+      expect(find.text('BREAK'), findsNWidgets(2)); // header + Monday's row
 
-    // Every other day-of-week card renders with an empty state, not omitted.
-    expect(find.text('No periods'), findsNWidgets(6));
-  });
+      // Header time ranges.
+      expect(find.textContaining('08:00'), findsWidgets);
+      expect(find.textContaining('09:20'), findsWidgets);
+
+      // Monday's row has the right subjects under the right period columns.
+      expect(find.text('English'), findsOneWidget);
+      expect(find.text('Math'), findsOneWidget);
+      expect(find.text('Science'), findsOneWidget);
+
+      // Every other day of the week (6 of them) renders as a single merged HOLIDAY row,
+      // not omitted and not shown as empty period cells.
+      expect(find.text('HOLIDAY'), findsNWidgets(6));
+    },
+  );
 
   testWidgets('Attendance tab shows the percentage and today\'s status', (tester) async {
     await tester.pumpWidget(
