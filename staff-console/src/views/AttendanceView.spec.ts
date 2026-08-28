@@ -41,10 +41,9 @@ describe('AttendanceView', () => {
     await flushPromises();
 
     expect(wrapper.text()).toContain('Eshaal');
+    expect(wrapper.find('.roster-avatar').text()).toBe('ES');
 
-    await wrapper
-      .find('select[data-testid="status-s1"]')
-      .setValue('PRESENT');
+    await wrapper.find('[data-testid="status-s1-present"]').trigger('click');
     await wrapper.find('[data-testid="save-attendance"]').trigger('click');
     await flushPromises();
 
@@ -62,16 +61,63 @@ describe('AttendanceView', () => {
     vi.mocked(api.sectionStudents).mockResolvedValue([
       { id: 's1', name: 'Eshaal', grNumber: 'GR-1001' },
     ]);
-    vi.mocked(api.markAttendance).mockRejectedValue(new Error('Something went wrong. Please try again.'));
+    vi.mocked(api.markAttendance).mockRejectedValue(
+      new Error('Something went wrong. Please try again.'),
+    );
 
     const wrapper = mount(AttendanceView);
     await flushPromises();
     await wrapper.find('select[data-testid="section-select"]').setValue('sec-1');
     await flushPromises();
-    await wrapper.find('select[data-testid="status-s1"]').setValue('ABSENT');
+    await wrapper.find('[data-testid="status-s1-absent"]').trigger('click');
     await wrapper.find('[data-testid="save-attendance"]').trigger('click');
     await flushPromises();
 
     expect(wrapper.text()).toContain('Something went wrong');
+  });
+
+  it('"Default all present" sets every visible student to Present and updates the submit count', async () => {
+    vi.mocked(api.listSections).mockResolvedValue([
+      { id: 'sec-1', name: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar' },
+    ]);
+    vi.mocked(api.sectionStudents).mockResolvedValue([
+      { id: 's1', name: 'Ali Khan', grNumber: 'GR-1001' },
+      { id: 's2', name: 'Ayesha Noor', grNumber: 'GR-1002' },
+    ]);
+
+    const wrapper = mount(AttendanceView);
+    await flushPromises();
+    await wrapper.find('select[data-testid="section-select"]').setValue('sec-1');
+    await flushPromises();
+
+    await wrapper.find('[data-testid="default-all-present"]').trigger('click');
+
+    expect(wrapper.find('[data-testid="status-s1-present"]').classes()).toContain('active');
+    expect(wrapper.find('[data-testid="status-s2-present"]').classes()).toContain('active');
+    expect(wrapper.text()).toContain('Submit Attendance (2/2)');
+  });
+
+  it('marks a student Leave via the overflow menu', async () => {
+    vi.mocked(api.listSections).mockResolvedValue([
+      { id: 'sec-1', name: '3A', className: 'Grade 3', campusName: 'Gulistan-e-Jauhar' },
+    ]);
+    vi.mocked(api.sectionStudents).mockResolvedValue([
+      { id: 's1', name: 'Ali Khan', grNumber: 'GR-1001' },
+    ]);
+
+    const wrapper = mount(AttendanceView);
+    await flushPromises();
+    await wrapper.find('select[data-testid="section-select"]').setValue('sec-1');
+    await flushPromises();
+
+    await wrapper.find('[data-testid="status-s1-more"]').trigger('click');
+    await wrapper.find('[data-testid="status-s1-leave"]').trigger('click');
+    await wrapper.find('[data-testid="save-attendance"]').trigger('click');
+    await flushPromises();
+
+    expect(api.markAttendance).toHaveBeenCalledWith(
+      'token-1',
+      expect.objectContaining({ studentId: 's1', status: 'LEAVE' }),
+    );
   });
 });
