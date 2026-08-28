@@ -12,6 +12,8 @@ class AppColors {
   static const muted = Color(0xFF64748B);
   static const border = Color(0xFFE2E8F0);
   static const destructive = Color(0xFFDC2626);
+  static const present = Color(0xFF15803D);
+  static const lateStatus = Color(0xFFB45309);
 }
 
 ThemeData buildAppTheme() {
