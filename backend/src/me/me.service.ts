@@ -29,6 +29,7 @@ export class MeService {
               include: {
                 enrollments: {
                   where: { status: 'ACTIVE' },
+                  orderBy: { startDate: 'desc' },
                   take: 1,
                   include: { campus: true, section: { include: { class: true } } },
                 },

@@ -35,6 +35,22 @@ describe('Me / children (e2e)', () => {
     prisma = moduleFixture.get(PrismaService);
     await app.init();
 
+    // Self-healing: if a prior run's afterAll didn't complete (crash, forced-quit), don't fail on
+    // stale fixtures — clear them before creating fresh ones. Students must be cleared before the
+    // school (Enrollment's campus/section/academicSession relations are Restrict).
+    await prisma.user
+      .deleteMany({
+        where: { identifier: { in: ['me2e-parent-a@seeds.edu.pk', 'me2e-parent-b@seeds.edu.pk'] } },
+      })
+      .catch(() => undefined);
+    await prisma.student
+      .deleteMany({ where: { grNumber: { startsWith: 'ME2E-' } } })
+      .catch(() => undefined);
+    const stale = await prisma.school.findMany({ where: { name: 'ME2E School' } });
+    for (const s of stale) {
+      await prisma.school.delete({ where: { id: s.id } }).catch(() => undefined);
+    }
+
     const school = await prisma.school.create({
       data: { name: 'ME2E School' },
     });

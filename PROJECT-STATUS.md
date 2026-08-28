@@ -136,7 +136,16 @@ Repo: https://github.com/zainknoman/SchoolPortal
   student-transfer workflow is built. The new `cascade-delete-restrictions.e2e-spec.ts` doesn't yet
   follow this codebase's established self-healing pre-flight cleanup pattern (see
   `timetable-attendance.e2e-spec.ts`), so a crashed run could leave stale fixtures — worth
-  bringing in line with the other e2e specs.
+  bringing in line with the other e2e specs. A student who transfers section mid-month currently gets
+  `getEnrollmentForDate`'s newer enrollment for that whole straddling month in Diary (correct before
+  and after the transfer month, wrong only for the transfer month itself) — same footing as the
+  `MeService` gap above: unreachable until a transfer workflow exists, revisit then.
+  `FeePaymentAllocation.feePayment` is `onDelete: Restrict` while its sibling `Receipt.feePayment` is
+  `Cascade` — the two children of the same `FeePayment` disagree on delete policy; decide the right
+  one before `FEAT-012` is built, not after. The `Enrollment` model has no backfill path from the old
+  `Student.campusId`/`sectionId` fields — safe today since nothing is deployed and no pilot database
+  exists, but if a seeded pilot ever does, it needs a manual backfill before this migration runs
+  against it.
 
 ## Sprint 7-8 — Messages + Notifications 🔜 NEXT
 

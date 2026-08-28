@@ -34,13 +34,10 @@ backend/src/timetable/timetable.service.spec.ts           — modify
 backend/src/timetable/timetable.module.ts                 — modify (register EnrollmentService)
 backend/src/sections/sections.service.ts                  — modify (getStudents → query via Enrollment)
 backend/src/sections/sections.service.spec.ts              — modify
-backend/src/sections/sections.module.ts                    — modify (register EnrollmentService)
 backend/src/circulars/circulars.service.ts                 — modify (section-scope recipient resolution → via Enrollment)
 backend/src/circulars/circulars.service.spec.ts              — modify
-backend/src/circulars/circulars.module.ts                     — modify (register EnrollmentService)
 backend/src/me/me.service.ts                                — modify (getChildrenForUser → include campus/section via Enrollment)
 backend/src/me/me.service.spec.ts                            — modify
-backend/src/me/me.module.ts                                   — modify (register EnrollmentService)
 backend/test/me.e2e-spec.ts                                    — modify (fixtures: create Enrollment; afterAll: delete students before school)
 backend/test/diary-circulars.e2e-spec.ts                        — modify (same)
 backend/test/timetable-attendance.e2e-spec.ts                     — modify (same)
@@ -1307,7 +1304,7 @@ git commit -m "docs: record Sprint 6.5 data-model correction"
 
 **Placeholder scan** — every step has real code, no "TBD"/"similar to Task N."
 
-**Type consistency** — `EnrollmentService.getCurrentEnrollment`/`getEnrollmentForDate` signatures match between Task 2's definition and every call site in Tasks 3, 4, 7 (Task 5 and Task 6 query `prisma.enrollment` directly rather than through the service, noted explicitly in each task's Interfaces block — a section→students roster query and a section→parents fan-out query are the inverse direction of what `EnrollmentService` resolves, so a direct Prisma call is the right level, not a missing dependency).
+**Type consistency** — `EnrollmentService.getCurrentEnrollment`/`getEnrollmentForDate` signatures match between Task 2's definition and every call site in Tasks 3, 4 (Task 5 and Task 6 query `prisma.enrollment` directly rather than through the service, noted explicitly in each task's Interfaces block — a section→students roster query and a section→parents fan-out query are the inverse direction of what `EnrollmentService` resolves, so a direct Prisma call is the right level, not a missing dependency; Task 7 also queries `prisma.enrollment` directly, via a nested `include`, rather than calling `EnrollmentService` — the same "not a missing dependency" reasoning applies).
 
 ---
 

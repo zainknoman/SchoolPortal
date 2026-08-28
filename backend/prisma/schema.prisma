@@ -375,7 +375,7 @@ model FeeVoucher {
   student           Student  @relation(fields: [studentId], references: [id], onDelete: Restrict)
   academicSessionId String
   academicSession   AcademicSession @relation(fields: [academicSessionId], references: [id])
-  month             String
+  month             String   // "2026-09"
   issueDate         DateTime
   dueDate           DateTime
   items       FeeItem[]
