@@ -247,7 +247,7 @@ model Timetable {
 model Attendance {
   id           String           @id @default(uuid())
   studentId    String
-  student      Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student      Student          @relation(fields: [studentId], references: [id], onDelete: Restrict)
   date         DateTime
   status       AttendanceStatus
   markedById   String
@@ -429,7 +429,7 @@ model Receipt {
 model LeaveRequest {
   id        String   @id @default(uuid())
   studentId String
-  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Restrict)
   startDate DateTime
   endDate   DateTime
   reason    String
