@@ -150,6 +150,45 @@ Repo: https://github.com/zainknoman/SchoolPortal
   exists, but if a seeded pilot ever does, it needs a manual backfill before this migration runs
   against it.
 
+## UI Refresh — Wireframe-driven Design Pass (2026-08-28/29) ✅ DONE
+
+- [x] Four `docs/wireframe/` mockups (OwnerDashboard, FeeReconciliation, TeacherMarkAttendance,
+      ParentHome) used for layout/UX only — restyled onto the existing SEEDS token system (navy/blue,
+      Plus Jakarta Sans, no new brand/font/icon library), per
+      `docs/superpowers/specs/2026-08-28-wireframe-css-refresh-design.md`. Two parallel
+      implementation plans, each independently executed via subagent-driven-development:
+      `docs/superpowers/plans/2026-08-28-staff-console-ui-refresh.md` and
+      `2026-08-28-parent-app-ui-refresh.md`.
+- [x] **staff-console**: AppShell chrome (Dashboard nav link, notification bell, role-initials
+      avatar, active-nav highlighting); Dashboard rebuilt from a placeholder into real stat
+      cards/trends chart/alerts panel; Attendance roster rebuilt from a dropdown-per-student table
+      into a segmented Present/Absent/Late control (+Leave/Holiday overflow) with a sticky submit
+      footer — the one screen here still wired to the real backend; new Fee Reconciliation Queue
+      view (`FeesView.vue`) built against local mock data, since FEAT-012 doesn't exist yet — isolated
+      behind one function so wiring the real endpoint later is a data-layer swap, not a rewrite.
+- [x] **parent-app**: new Home tab (greeting, child card, real attendance-% stat, static
+      Fees/Results placeholders, announcements) replacing a placeholder; Calendar tab's Timetable
+      sub-tab reworked into a 7-day weekly grid (period chips per day, including empty days);
+      Attendance/Diary sub-tabs card-wrapped.
+- [x] Both final whole-branch reviews caught real defects narrower per-task review couldn't see:
+      staff-console's Dashboard chart used `var(--...)` in SVG presentation attributes (invisible in
+      real browsers — attributes don't resolve CSS custom properties, only `style` bindings do);
+      parent-app's Home stat grid used `childAspectRatio` (device-width-dependent — broken on every
+      real phone, only green in the 800×600 test harness), fixed to a fixed `mainAxisExtent`. Both
+      fixed and re-reviewed clean before merge.
+- Verified: staff-console 63/63 tests, `npm run build` (type-check + build) clean; parent-app
+  27/27 tests, `flutter analyze` clean (2 pre-existing info lints in untouched `auth_state.dart`
+  aside). Both pushed to `origin/main`.
+- Follow-up (tracked, not blocking): a repo-wide `dart format` page-width mismatch in parent-app
+  predates this pass entirely (confirmed via git-history baseline) — either add a
+  `formatter: page_width:` entry to `analysis_options.yaml` or run a dedicated repo-wide reformat
+  task. An accessibility pass (aria-pressed on segmented controls, aria-expanded on overflow menus,
+  an accessible name on the Dashboard chart) is worth doing as one dedicated task across the ~5
+  screens touched here rather than patched piecemeal. `AppShell`'s `isAdmin` shows the Circulars nav
+  link to the `ACCOUNTS` role, but `/admin/circulars` requires `SCHOOL_ADMIN`/`SUPER_ADMIN` — an
+  accounts user clicking it silently bounces to `/admin`; pre-existing, found during final review,
+  not fixed here.
+
 ## Sprint 7-8 — Messages + Notifications 🔜 NEXT
 
 - [ ] **FEAT-010** — Messages: scoped inbox (Parent → Class Teacher / Admin / Accounts / Principal
