@@ -55,7 +55,15 @@ export class CircularsService {
         : await this.prisma.user.findMany({
             where: {
               role: 'PARENT',
-              parentProfile: { children: { some: { student: { sectionId: dto.sectionId } } } },
+              parentProfile: {
+                children: {
+                  some: {
+                    student: {
+                      enrollments: { some: { sectionId: dto.sectionId, status: 'ACTIVE' } },
+                    },
+                  },
+                },
+              },
             },
             select: { id: true },
           });

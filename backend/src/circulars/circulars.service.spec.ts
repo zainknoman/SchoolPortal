@@ -62,7 +62,7 @@ describe('CircularsService', () => {
     );
   });
 
-  it("publishing a section-scoped circular only reaches that section's parents", async () => {
+  it("publishing a section-scoped circular only reaches that section's currently-enrolled parents", async () => {
     prisma.circular.create.mockResolvedValue({ id: 'circ-2' });
     prisma.user.findMany.mockResolvedValue([{ id: 'parent-a' }]);
 
@@ -75,7 +75,15 @@ describe('CircularsService', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           role: 'PARENT',
-          parentProfile: { children: { some: { student: { sectionId: 'sec-1' } } } },
+          parentProfile: {
+            children: {
+              some: {
+                student: {
+                  enrollments: { some: { sectionId: 'sec-1', status: 'ACTIVE' } },
+                },
+              },
+            },
+          },
         }),
       }),
     );
