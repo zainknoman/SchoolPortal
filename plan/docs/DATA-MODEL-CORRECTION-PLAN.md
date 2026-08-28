@@ -550,6 +550,39 @@ git add backend/src/diary
 git commit -m "fix(diary): resolve section by enrollment-as-of-date, not current placement"
 ```
 
+**Addendum (found during Task 7's full-suite checkpoint, not anticipated when this plan was written):** the `monthStart` reference date above breaks in the common case, not just an edge case. `EnrollmentService.getEnrollmentForDate` requires `enrollment.startDate <= date`; since a real enrollment's `startDate` is almost never literally the 1st of whatever month is later queried (it's session-start or enrollment-creation date), querying "this month" 404s whenever the student's enrollment began after the 1st — which is nearly always. Fixed by widening `getEnrollmentForDate` to an overlap-window query when the caller supplies an end date, and having `DiaryService.getForStudent` supply one:
+
+```typescript
+// backend/src/enrollment/enrollment.service.ts — getEnrollmentForDate, additive/backward-compatible
+async getEnrollmentForDate(studentId: string, date: Date, windowEnd?: Date) {
+  const enrollment = await this.prisma.enrollment.findFirst({
+    where: {
+      studentId,
+      startDate: windowEnd ? { lt: windowEnd } : { lte: date },
+      OR: [{ endDate: null }, { endDate: { gte: date } }],
+    },
+    orderBy: { startDate: 'desc' },
+  });
+  if (!enrollment) {
+    throw new NotFoundException('Student has no enrollment covering this date');
+  }
+  return enrollment;
+}
+```
+
+```typescript
+// backend/src/diary/diary.service.ts — getForStudent
+async getForStudent(studentId: string, month: string): Promise<DiaryEntrySummary[]> {
+  const monthStart = new Date(`${month}-01T00:00:00.000Z`);
+  const monthEnd = new Date(monthStart);
+  monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1);
+  const enrollment = await this.enrollmentService.getEnrollmentForDate(studentId, monthStart, monthEnd);
+  return this.getForSection(enrollment.sectionId, month);
+}
+```
+
+When `windowEnd` is omitted, the query is byte-identical to before (Task 2's tests need no changes). `getCurrentEnrollment`, `TimetableService`, `SectionsService`, and `CircularsService` are unaffected — none of them use `getEnrollmentForDate`.
+
 ---
 
 ### Task 4: `TimetableService.getForStudent` — resolve current section via `EnrollmentService`
