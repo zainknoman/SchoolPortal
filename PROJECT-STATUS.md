@@ -60,15 +60,38 @@ Repo: https://github.com/zainknoman/SchoolPortal
 - Reminder: none of backend (`npm run start:dev`, :3000), staff-console (`npm run dev`, :5173), or
   parent-app (`flutter run -d chrome`, needs `D:\dev\flutter\bin` on PATH) auto-start — a "blank app"
   is almost always one of these three not running, check that before assuming a code bug.
+- Reminder (2026-08-28): `backend/dev.db` is git-ignored, so each git worktree (and the main
+  checkout) has its own separate SQLite file — merging a branch that added Prisma migrations does
+  NOT apply them to the main checkout's `dev.db`, and the Prisma Client there stays stale until
+  `npx prisma generate` runs against the merged schema. After merging any branch with schema
+  changes, run `npx prisma generate` then `npx prisma migrate deploy` (or delete `dev.db` and
+  redo migrate+seed from scratch, per the Sprint 3-4 note above) in the checkout you'll actually
+  run the app from.
 
-## Sprint 5-6 — Diary + Circulars 🔜 NEXT
+## Sprint 5-6 — Diary + Circulars ✅ DONE
 
-- [ ] **FEAT-008** — Diary/homework: per-subject entries, attachments, due dates, correct Urdu RTL
-      rendering (no auto-translation)
-- [ ] **FEAT-009** — Circulars: school/section scope, attachments, read/unread tracking (delivered
-      vs read counts visible to admin)
+- [x] **FEAT-008** — Diary/homework: per-subject entries, attachments, due dates, correct Urdu RTL
+      rendering (no auto-translation) — teacher/admin-authored (`POST /diary` accepts
+      TEACHER/SCHOOL_ADMIN/SUPER_ADMIN), section-scoped, staff-console compose screen + parent-app
+      Diary sub-tab (3rd tab of the Calendar screen)
+- [x] **FEAT-009** — Circulars: school/section scope, attachments, read/unread tracking (delivered
+      vs read counts visible to admin) — staff-console publish screen (Admin/Super Admin) + parent-app
+      Circulars tab (fills the Notifications bottom-nav slot, unread badge)
+- [x] New shared Files module (`POST/GET /files/:id`, local-disk storage behind a swappable
+      `STORAGE_ADAPTER` token — S3 swap later is a one-file change) and Urdu RTL/font-detection
+      helpers (`detectDirection`/`DirectionalText`, one implementation per client, pure Unicode
+      script detection, no translation)
+- Verified: 15 backend unit suites/53 tests + 5 e2e suites/21 tests, 7 staff-console files/24
+  tests, parent-app 20/20 tests — all passing on both the feature branch and after merge to main;
+  lint/type-check clean on both clients
+- Follow-up (tracked, not blocking, deferred from the final review): no upload size limit/type
+  filter on `POST /files`; no orphaned-file cleanup when an entry is re-posted or a create fails
+  post-upload; the `?access_token=` JWT-in-query fallback is global rather than scoped to the
+  files route; `Circular` school-wide fan-out and staff file access have no school/campus
+  boundary (fine today — single-school system — but will need one before a second school is
+  onboarded). Bundle into a short "file-storage hardening" pass before any non-local deployment.
 
-## Sprint 7-8 — Messages + Notifications ⏳ PENDING
+## Sprint 7-8 — Messages + Notifications 🔜 NEXT
 
 - [ ] **FEAT-010** — Messages: scoped inbox (Parent → Class Teacher / Admin / Accounts / Principal
       only, server-enforced), search/filter/reply
@@ -116,5 +139,5 @@ Repo: https://github.com/zainknoman/SchoolPortal
 
 ---
 
-**Next step:** Sprint 5-6 — FEAT-008 (Diary/homework, incl. Urdu RTL) + FEAT-009 (Circulars, incl.
-read/unread tracking), backend API through both clients, same TDD rigor as Sprints 1-4.
+**Next step:** Sprint 7-8 — FEAT-010 (Messages, scoped inbox) + FEAT-011 (Notifications, FCM wiring
++ deep links), backend API through both clients, same TDD rigor as Sprints 1-6.
